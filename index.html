@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title id="page-title">Undangan Fatrus & Luvinta</title>
+  <meta name="theme-color" content="#8b703a">
+  <meta name="description" content="Undangan Pernikahan Ahmad Fatrussulukhi & Luvinta Citra Fitria">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Undangan">
+  <meta name="mobile-web-app-capable" content="yes">
+
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="./assets/icons/icon-192.png">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💍</text></svg>">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Engagement&family=Poppins:wght@300;400;500;600;700&family=Golos+Text:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <!-- Libraries -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+
+  <!-- Scroll Progress Bar -->
+  <div id="scroll-progress"></div>
+
+  <!-- Main Loader -->
+  <div id="main-loader">
+    <img id="loader-orn-tl" src="https://lh3.googleusercontent.com/d/1lp_xChzCbh4-UYHnI4q0ysUwojfcYb1W" class="loader-ornament tl" alt="" loading="lazy">
+    <img id="loader-orn-tr" src="https://lh3.googleusercontent.com/d/1lp_xChzCbh4-UYHnI4q0ysUwojfcYb1W" class="loader-ornament tr" alt="" loading="lazy">
+    <img id="loader-orn-bl" src="https://lh3.googleusercontent.com/d/1lp_xChzCbh4-UYHnI4q0ysUwojfcYb1W" class="loader-ornament bl" alt="" loading="lazy">
+    <img id="loader-orn-br" src="https://lh3.googleusercontent.com/d/1lp_xChzCbh4-UYHnI4q0ysUwojfcYb1W" class="loader-ornament br" alt="" loading="lazy">
+    <div class="loader-content">
+      <div class="loader-envelope">💌</div>
+      <div class="loader-label">The Wedding Of</div>
+      <div class="loader-names"><span class="name-text" id="loader-name-text"></span></div>
+      <div class="loader-line-wrapper"></div>
+      <div class="loader-status" id="loader-status">Merajut Kisah Bahagia<span class="dot-loader"></span><span class="dot-loader"></span><span class="dot-loader"></span></div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="fixed top-5 right-5 z-[999999] flex flex-col gap-3 pointer-events-none"></div>
+
+  <!-- Background Music -->
+  <audio id="bg-music" loop preload="auto"></audio>
+
+  <!-- PWA Install Button -->
+  <button id="pwa-install-btn" onclick="installPWA()" title="Install Aplikasi"><i class="fa-solid fa-download"></i></button>
+
+  <!-- Cover / Awal -->
+  <div id="awal" class="awal" style="visibility:hidden;">
+    <div class="text-center w-full max-w-md px-6">
+      <p data-aos="fade-down" data-aos-duration="800" class="uppercase text-[11px] tracking-[6px] text-gold mb-3 font-semibold">Happy Wedding</p>
+      <h1 data-aos="zoom-in" data-aos-delay="150" class="text-4xl text-gold mb-8">Wedding Of</h1>
+      <div data-aos="zoom-rotate" data-aos-delay="300" data-aos-duration="1200" class="relative w-[240px] h-[240px] mx-auto mb-8">
+        <div id="val-fotoSampul" class="circle-img-wrapper absolute inset-0 m-auto" style="width:190px;height:190px;"></div>
+        <img id="border-frame-awal" src="https://indoinvite.com/nikah/template/elegan/elegan-gold/EG-Border.webp" class="border-frame" style="width:280px;" alt="Frame" loading="lazy">
+      </div>
+      <h1 data-aos="landing" data-aos-delay="500" class="text-5xl text-gold mb-6 relative z-10">
+        <span class="val-pria-nick"></span> <span class="text-3xl">&</span> <span class="val-wanita-nick"></span>
+      </h1>
+      <div data-aos="reveal-up" data-aos-delay="700">
+        <p class="text-xs text-gold font-semibold mb-1 tracking-wide">Kepada Yth.</p>
+        <h2 class="text-2xl text-gold mb-3 leading-tight" id="nama-tamu">Bapak/Ibu/Saudara/i</h2>
+        <p class="text-[11px] text-gold opacity-80 mb-10 px-4 leading-relaxed">Tanpa Mengurangi Rasa Hormat, Kami Mengundang Anda untuk Hadir di Acara Pernikahan Kami.</p>
+        <button onclick="bukaUndangan()" class="button-gold w-3/4 py-3.5 text-base">
+          <i class="fa-solid fa-envelope-open mr-2"></i> Buka Undangan
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <main id="main-content" class="hidden">
+    <div id="audio-toggle" class="audio-btn hidden" onclick="toggleAudio()" title="Musik">
+      <i class="fa-solid fa-music text-sm"></i>
+    </div>
+
+    <!-- SECTION: Home -->
+    <section id="home" class="box-container min-h-screen py-20 px-4 text-center flex flex-col items-center justify-center relative">
+      <img id="orn-home-tl" src="https://indoinvite.com/nikah/template/elegan/elegan-gold/EG-AKR.webp" class="ornament ornament-tl parallax-layer" data-parallax-speed="0.2" alt="" loading="lazy">
+      <img id="orn-home-tr" src="https://indoinvite.com/nikah/template/elegan/elegan-gold/EG-AKN.webp" class="ornament ornament-tr parallax-layer" data-parallax-speed="-0.2" alt="" loading="lazy">
+      <div class="relative w-[280px] h-[280px] mx-auto mt-8 mb-6" data-aos="zoom-rotate" data-aos-duration="1400">
+        <div id="val-fotoSampul2" class="circle-img-wrapper absolute inset-0 m-auto" style="width:220px;height:220px;"></div>
+        <img id="border-frame-home" src="https://indoinvite.com/nikah/template/elegan/elegan-gold/EG-Border.webp" class="border-frame" style="width:320px;" alt="Frame" loading="lazy">
+      </div>
+      <h1 class="text-5xl sm:text-6xl text-gold mt-2 mb-3" data-aos="reveal-up" data-aos-duration="1000">
+        <span class="val-pria-nick"></span> <span class="text-3xl sm:text-4xl">&</span> <span class="val-wanita-nick"></span>
+      </h1>
+      <p class="text-sm text-gold-light max-w-sm mx-auto mb-10 italic leading-relaxed split-text" data-aos="fade" data-aos-delay="200">"Kami akan Menikah, dan kami ingin Anda menjadi Bagian dari Hari Istimewa Kami!"</p>
+      <div id="countdown" class="flex justify-center flex-wrap mb-10" data-aos="stagger-children" data-aos-duration="800">
+        <div class="countdown-item"><span id="cd-days" class="text-2xl font-bold">0</span><span class="text-[10px] mt-0.5 opacity-80">Hari</span></div>
+        <div class="countdown-item"><span id="cd-hours" class="text-2xl font-bold">0</span><span class="text-[10px] mt-0.5 opacity-80">Jam</span></div>
+        <div class="countdown-item"><span id="cd-mins" class="text-2xl font-bold">0</span><span class="text-[10px] mt-0.5 opacity-80">Menit</span></div>
+        <div class="countdown-item"><span id="cd-secs" class="text-2xl font-bold">0</span><span class="text-[10px] mt-0.5 opacity-80">Detik</span></div>
+      </div>
+      <img id="orn-home-bl" src="https://indoinvite.com/nikah/template/elegan/elegan-gold/EG-BKR2.webp" class="ornament ornament-bl parallax-layer" data-parallax-speed="0.15" alt="" loading="lazy">
+      <img id="orn-home-br" src="https://indoinvite.com/nikah/template/elegan/elegan-gold/EG-BKN2.webp" class="ornament ornament-br parallax-layer" data-parallax-speed="-0.15" alt="" loading="lazy">
+      <div class="scroll-hint">
+        <div class="scroll-hint-text">Scroll</div>
+        <i class="fa-solid fa-chevron-down text-xl"></i>
+      </div>
+    </section>
+
+    <div class="section-divider box-container"><div class="line"></div><div class="diamond" data-aos="zoom-rotate"></div><div class="line"></div></div>
+
+    <!-- SECTION: Chapter 01 - Opening -->
+    <section class="box-container py-20 px-6 text-center relative z-10 section-reveal">
+      <div class="max-w-2xl mx-auto">
+        <div class="section-header" data-aos="reveal-down" data-aos-duration="900">
+          <div class="section-number">Chapter 01</div>
+          <div class="section-subtitle">Bismillahirrahmanirrahim</div>
+          <h2 class="section-title">Assalamu'alaikum</h2>
+          <div class="section-title-line"></div>
+        </div>
+        <p class="text-gold-light mb-6 text-base split-text" data-aos="reveal-up" data-aos-delay="100" style="font-family:'Golos Text',sans-serif;">السَّلاَمُ عَلَيْكُمْ وَرَحْمَةُ اللهِ وَبَرَكَاتُهُ</p>
+        <h1 class="text-3xl sm:text-4xl text-gold mb-8 leading-tight" data-aos="reveal-up" data-aos-delay="200">
+          The Wedding of <br><span class="val-pria-nick"></span> & <span class="val-wanita-nick"></span>
+        </h1>
+        <p class="text-gray-600 text-sm max-w-md mx-auto leading-relaxed" data-aos="reveal-up" data-aos-delay="300">Atas Rahmat Tuhan Yang Maha Esa, kami bermaksud mengundang Anda di acara pernikahan kami. Merupakan suatu kehormatan dan kebahagiaan bagi kami sekeluarga, apabila Bapak/Ibu/Saudara/i berkenan hadir dan memberikan doa restu.</p>
+      </div>
+    </section>
+
+    <div class="section-divider box-container"><div class="line"></div><div class="diamond" data-aos="zoom-rotate"></div><div class="line"></div></div>
+
+    <!-- SECTION: Couple -->
+    <section id="couple" class="box-container py-20 px-4 text-center relative section-reveal">
+      <img id="orn-couple-tl" src="https://indoinvite.com/nikah/template/elegan/elegan-gold/EG-AKR1.webp" class="ornament ornament-tl parallax-layer" data-parallax-speed="0.15" alt="" loading="lazy">
+      <img id="orn-couple-tr" src="https://indoinvite.com/nikah/template/elegan/elegan-gold/EG-AKN1.webp" class="ornament ornament-tr parallax-layer" data-parallax-speed="-0.15" alt="" loading="lazy">
+      <div class="max-w-4xl mx-auto">
+        <div class="section-header" data-aos="reveal-down" data-aos-duration="900">
+          <div class="section-number">Chapter 02</div>
+          <div class="section-subtitle">The Bride & Groom</div>
+          <h2 class="section-title">Mempelai</h2>
+          <div class="section-title-line"></div>
+        </div>
+        <div class="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-10 mt-10">
+          <div class="box-pengantin shadow-custom w-full md:w-5/12" data-aos="reveal-left" data-aos-duration="1000">
+            <div class="relative w-36 h-36 mx-auto mb-5" data-aos="glow-in" data-aos-delay="300">
+              <img id="val-fotoPria" src="" class="w-full h-full rounded-full border-4 border-gold object-cover shadow-md" alt="Groom" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+              <div class="w-full h-full rounded-full border-4 border-gold img-fallback absolute inset-0" style="display:none;"><i class="fa-solid fa-user"></i></div>
+            </div>
+            <h1 id="val-pria-full" class="text-3xl sm:text-4xl text-gray-800 mb-2">Nama Pria</h1>
+            <div class="text-sm text-gray-500 leading-relaxed mb-5"><p>Putra dari</p><p id="val-pria-ortu" class="font-semibold text-gray-700 mt-1">Ortu Pria</p></div>
+            <a id="val-pria-ig-link" href="#" target="_blank" class="inline-flex items-center gap-2 bg-gold text-white px-5 py-2 rounded-full text-xs hover:shadow-lg transition"><i class="fab fa-instagram text-base"></i> <span id="val-pria-ig"></span></a>
+          </div>
+          <div class="text-6xl text-gold font-engage my-2 md:my-0" data-aos="zoom-rotate" data-aos-delay="200">&</div>
+          <div class="box-pengantin shadow-custom w-full md:w-5/12" data-aos="reveal-right" data-aos-duration="1000">
+            <div class="relative w-36 h-36 mx-auto mb-5" data-aos="glow-in" data-aos-delay="300">
+              <img id="val-fotoWanita" src="" class="w-full h-full rounded-full border-4 border-gold object-cover shadow-md" alt="Bride" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+              <div class="w-full h-full rounded-full border-4 border-gold img-fallback absolute inset-0" style="display:none;"><i class="fa-solid fa-user"></i></div>
+            </div>
+            <h1 id="val-wanita-full" class="text-3xl sm:text-4xl text-gray-800 mb-2">Nama Wanita</h1>
+            <div class="text-sm text-gray-500 leading-relaxed mb-5"><p>Putri dari</p><p id="val-wanita-ortu" class="font-semibold text-gray-700 mt-1">Ortu Wanita</p></div>
+            <a id="val-wanita-ig-link" href="#" target="_blank" class="inline-flex items-center gap-2 bg-gold text-white px-5 py-2 rounded-full text-xs hover:shadow-lg transition"><i class="fab fa-instagram text-base"></i> <span id="val-wanita-ig"></span></a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider box-container"><div class="line"></div><div class="diamond" data-aos="zoom-rotate"></div><div class="line"></div></div>
+
+    <!-- SECTION: Story -->
+    <section id="story" class="box-container py-20 px-4 relative section-reveal">
+      <div class="max-w-2xl mx-auto">
+        <div class="section-header text-center" data-aos="reveal-down" data-aos-duration="900">
+          <div class="section-number">Chapter 03</div>
+          <div class="section-subtitle">Our Journey</div>
+          <h2 class="section-title">Love Story</h2>
+          <div class="section-title-line"></div>
+        </div>
+        <div class="bg-white rounded-2xl shadow-custom p-8 mb-0 hover:-translate-y-1 transition duration-300 border border-gray-100" data-aos="clip-up" data-aos-duration="1000">
+          <img id="val-story1-img" src="" class="w-full max-w-sm mx-auto rounded-xl mb-6 shadow-sm object-cover aspect-[4/3]" alt="Story 1" loading="lazy" onerror="this.style.display='none';">
+          <div class="inline-block bg-gold text-white text-xs font-bold px-3 py-1 rounded-full mb-4 tracking-wider">CHAPTER ONE</div>
+          <h3 id="val-story1-title" class="text-xl sm:text-2xl font-bold text-gray-800 mb-3 font-sans">Story 1</h3>
+          <p id="val-story1-desc" class="text-sm text-gray-500 leading-relaxed">Desc 1</p>
+        </div>
+        <div class="story-connector" data-aos="reveal-up" data-aos-duration="800"></div>
+        <div class="bg-white rounded-2xl shadow-custom p-8 hover:-translate-y-1 transition duration-300 border border-gray-100" data-aos="clip-up" data-aos-duration="1000" data-aos-delay="150">
+          <img id="val-story2-img" src="" class="w-full max-w-sm mx-auto rounded-xl mb-6 shadow-sm object-cover aspect-[4/3]" alt="Story 2" loading="lazy" onerror="this.style.display='none';">
+          <div class="inline-block bg-gold text-white text-xs font-bold px-3 py-1 rounded-full mb-4 tracking-wider">CHAPTER TWO</div>
+          <h3 id="val-story2-title" class="text-xl sm:text-2xl font-bold text-gray-800 mb-3 font-sans">Story 2</h3>
+          <p id="val-story2-desc" class="text-sm text-gray-500 leading-relaxed">Desc 2</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider box-container"><div class="line"></div><div class="diamond" data-aos="zoom-rotate"></div><div class="line"></div></div>
+
+    <!-- SECTION: Event -->
+    <section id="event" class="box-container py-20 px-4 relative section-reveal">
+      <img id="orn-event-tl" src="https://indoinvite.com/nikah/template/elegan/elegan-gold/EG-AKR2.webp" class="ornament ornament-tl parallax-layer" data-parallax-speed="0.15" alt="" loading="lazy">
+      <img id="orn-event-tr" src="https://indoinvite.com/nikah/template/elegan/elegan-gold/EG-AKN2.webp" class="ornament ornament-tr parallax-layer" data-parallax-speed="-0.15" alt="" loading="lazy">
+      <div class="max-w-lg mx-auto text-center relative z-10">
+        <div class="section-header" data-aos="reveal-down" data-aos-duration="900">
+          <div class="section-number">Chapter 04</div>
+          <div class="section-subtitle">Mark Your Calendar</div>
+          <h2 class="section-title">Save The Date</h2>
+          <div class="section-title-line"></div>
+        </div>
+        <div class="event-card shadow-custom" data-aos="reveal-up" data-aos-duration="900">
+          <div class="event-icon" data-aos="glow-in" data-aos-delay="200"><i class="fa-solid fa-champagne-glasses"></i></div>
+          <h1 class="text-3xl sm:text-4xl text-gold mb-5">Resepsi Pernikahan</h1>
+          <div class="event-date-box"><h3 id="val-resepsi-date" class="text-2xl sm:text-3xl font-black text-gold px-4">Tgl Resepsi</h3></div>
+          <div class="flex items-center justify-center gap-2 text-gray-600 mb-1.5"><i class="fa-regular fa-clock text-sm text-gold-light"></i><p class="text-base font-medium"><span id="val-resepsi-time">Jam Resepsi</span></p></div>
+          <div class="flex items-start justify-center gap-2 text-gray-600 mb-6"><i class="fa-solid fa-location-dot text-sm text-gold-light mt-1"></i><p id="val-resepsi-lokasi" class="text-sm font-medium leading-snug">Lokasi Resepsi</p></div>
+          <a id="val-resepsi-map" href="#" target="_blank" class="inline-flex items-center gap-2 border-2 border-gold text-gold px-6 py-2.5 rounded-full hover:bg-gold hover:text-white transition font-semibold text-sm"><i class="fa-solid fa-map-location-dot"></i> Maps Lokasi</a>
+        </div>
+        <div class="event-connector" data-aos="reveal-up" data-aos-duration="500" data-aos-delay="100"><span class="val-pria-nick"></span> & <span class="val-wanita-nick"></span></div>
+        <div class="event-card shadow-custom" data-aos="reveal-up" data-aos-duration="900" data-aos-delay="200">
+          <div class="event-icon" data-aos="glow-in" data-aos-delay="200"><i class="fa-solid fa-ring"></i></div>
+          <h1 class="text-3xl sm:text-4xl text-gold mb-5">Akad Pernikahan</h1>
+          <div class="event-date-box"><h3 id="val-akad-date" class="text-2xl sm:text-3xl font-black text-gold px-4">Tgl Akad</h3></div>
+          <div class="flex items-center justify-center gap-2 text-gray-600 mb-1.5"><i class="fa-regular fa-clock text-sm text-gold-light"></i><p class="text-base font-medium"><span id="val-akad-time">Jam Akad</span></p></div>
+          <div class="flex items-start justify-center gap-2 text-gray-600 mb-6"><i class="fa-solid fa-location-dot text-sm text-gold-light mt-1"></i><p id="val-akad-lokasi" class="text-sm font-medium leading-snug">Lokasi Akad</p></div>
+          <a id="val-akad-map" href="#" target="_blank" class="inline-flex items-center gap-2 border-2 border-gold text-gold px-6 py-2.5 rounded-full hover:bg-gold hover:text-white transition font-semibold text-sm"><i class="fa-solid fa-map-location-dot"></i> Maps Lokasi</a>
+        </div>
+        <div class="event-connector" data-aos="reveal-up" data-aos-duration="500" data-aos-delay="300"><span class="val-pria-nick"></span> & <span class="val-wanita-nick"></span></div>
+        <div class="bg-white p-10 pt-16 shadow-custom text-center event-card-bottom border border-gray-100" data-aos="reveal-up" data-aos-duration="900" data-aos-delay="400">
+          <div class="event-icon" data-aos="glow-in" data-aos-delay="200"><i class="fa-solid fa-utensils"></i></div>
+          <h1 class="text-3xl sm:text-4xl text-gold mb-5">Jamuan Tamu</h1>
+          <div class="event-date-box"><h3 id="val-dinner-date" class="text-2xl sm:text-3xl font-black text-gold px-4">Tgl Dinner</h3></div>
+          <div class="flex items-center justify-center gap-2 text-gray-600 mb-1.5"><i class="fa-regular fa-clock text-sm text-gold-light"></i><p class="text-base font-medium"><span id="val-dinner-time">Jam Dinner</span></p></div>
+          <div class="flex items-start justify-center gap-2 text-gray-600 mb-6"><i class="fa-solid fa-location-dot text-sm text-gold-light mt-1"></i><p id="val-dinner-lokasi" class="text-sm font-medium leading-snug">Lokasi Dinner</p></div>
+          <a id="val-dinner-map" href="#" target="_blank" class="inline-flex items-center gap-2 border-2 border-gold text-gold px-6 py-2.5 rounded-full hover:bg-gold hover:text-white transition font-semibold text-sm"><i class="fa-solid fa-map-location-dot"></i> Maps Lokasi</a>
+        </div>
+        <p class="text-gray-500 text-sm mt-12 mb-10 leading-relaxed" data-aos="reveal-up" data-aos-duration="700" data-aos-delay="500">Besar harapan kami apabila Bapak/Ibu/Sahabat/Saudara/i berkenan hadir pada acara ini. Atas perhatiannya, kami ucapkan terima kasih.</p>
+        <div class="rounded-2xl overflow-hidden shadow-custom mb-10 border border-gray-100" data-aos="clip-up" data-aos-duration="800" data-aos-delay="600">
+          <iframe id="val-map-iframe" src="" width="100%" height="300" style="border:0;" allowfullscreen="" loading="lazy"></iframe>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider box-container"><div class="line"></div><div class="diamond" data-aos="zoom-rotate"></div><div class="line"></div></div>
+
+    <!-- SECTION: Gift -->
+    <section id="gift" class="box-container py-20 px-4 text-center section-reveal">
+      <div class="max-w-md mx-auto">
+        <div class="section-header" data-aos="reveal-down" data-aos-duration="900">
+          <div class="section-number">Chapter 05</div>
+          <div class="section-subtitle">Wedding Gift</div>
+          <h2 class="section-title">Titip Hadiah</h2>
+          <div class="section-title-line"></div>
+        </div>
+        <div class="event-icon" data-aos="glow-in"><i class="fa-solid fa-gift"></i></div>
+        <p class="text-sm text-gray-500 mb-10 leading-relaxed" data-aos="reveal-up" data-aos-delay="100">Doa restu Bapak/Ibu sekalian merupakan karunia yang sangat berarti bagi kami. Dan jika memberi merupakan ungkapan tanda kasih, Bapak/Ibu dapat memberi kado secara cashless.</p>
+        <div id="bank-list-container" class="flex flex-col gap-4"></div>
+        <div id="bank-empty-msg" class="text-sm text-gray-400 italic py-4 hidden" data-aos="reveal-up">Belum ada rekening yang tersedia.</div>
+      </div>
+    </section>
+
+    <div class="section-divider box-container"><div class="line"></div><div class="diamond" data-aos="zoom-rotate"></div><div class="line"></div></div>
+
+    <!-- SECTION: RSVP -->
+    <section id="rsvp" class="box-container py-20 px-4 relative section-reveal">
+      <div class="max-w-xl mx-auto relative z-10">
+        <div class="section-header" data-aos="reveal-down" data-aos-duration="900">
+          <div class="section-number">Chapter 06</div>
+          <div class="section-subtitle">Your Wishes</div>
+          <h2 class="section-title">Buku Tamu</h2>
+          <div class="section-title-line"></div>
+        </div>
+        <div class="bg-white p-8 sm:p-10 rounded-2xl shadow-custom border border-gray-100" data-aos="reveal-up" data-aos-duration="1000">
+          <div class="event-icon" data-aos="glow-in" data-aos-delay="100"><i class="fa-solid fa-book-open"></i></div>
+          <p class="text-center text-gray-400 text-xs mb-8">Berikan ucapan & konfirmasi kehadiran Anda</p>
+          <form id="rsvp-form" onsubmit="submitRSVP(event)">
+            <div class="mb-4 text-left"><label class="block text-gray-600 text-xs font-semibold mb-1.5">Nama</label><input type="text" id="rsvp-name" required class="rsvp-input" placeholder="Nama Anda"></div>
+            <div class="mb-4 text-left"><label class="block text-gray-600 text-xs font-semibold mb-1.5">Kehadiran</label><select id="rsvp-status" required class="rsvp-input" onchange="toggleJumlah(this.value)"><option value="">Pilih Status Kehadiran</option><option value="Hadir">Hadir</option><option value="Tidak Hadir">Tidak Hadir</option></select></div>
+            <div id="jumlah-wrapper" class="mb-4 text-left hidden"><label class="block text-gray-600 text-xs font-semibold mb-1.5">Jumlah Tamu (Maks 10)</label><input type="number" id="rsvp-jumlah" min="1" max="10" value="1" class="rsvp-input"></div>
+            <div class="mb-6 text-left"><label class="block text-gray-600 text-xs font-semibold mb-1.5">Ucapan & Doa</label><textarea id="rsvp-message" required rows="4" class="rsvp-input" placeholder="Tulis ucapan dan doa terbaik Anda..."></textarea></div>
+            <button type="submit" id="btn-submit-rsvp" class="w-full button-gold py-3.5 text-sm flex items-center justify-center gap-2"><i class="fa-solid fa-paper-plane"></i> Kirim Ucapan</button>
+          </form>
+          <div class="mt-10 border-t border-gray-100 pt-8 text-left">
+            <h3 id="rsvp-count" class="font-bold text-gray-800 mb-4 font-sans text-sm">Ucapan Tamu (0)</h3>
+            <div id="rsvp-list-container" class="max-h-[400px] overflow-y-auto pr-1 space-y-3">
+              <p class="text-sm text-gray-400 italic text-center py-4">Belum ada ucapan. Jadilah yang pertama!</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider box-container"><div class="line"></div><div class="diamond" data-aos="zoom-rotate"></div><div class="line"></div></div>
+
+    <!-- SECTION: Gallery -->
+    <section id="gallery" class="box-container py-20 px-4 text-center section-reveal">
+      <div class="max-w-4xl mx-auto">
+        <div class="section-header" data-aos="reveal-down" data-aos-duration="900">
+          <div class="section-number">Chapter 07</div>
+          <div class="section-subtitle">Our Moments</div>
+          <h2 class="section-title">Gallery</h2>
+          <div class="section-title-line"></div>
+        </div>
+        <p class="text-gray-400 text-sm mb-10" data-aos="reveal-up">Momen-momen indah bersama</p>
+        <div id="video-section-wrapper" class="relative w-full overflow-hidden rounded-2xl shadow-lg mb-10 border border-gray-100" style="padding-top: 56.25%;" data-aos="clip-up" data-aos-duration="1000">
+          <iframe id="val-videoYoutubeUrl" class="absolute top-0 left-0 w-full h-full" src="" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4" id="gallery-grid"></div>
+      </div>
+    </section>
+
+    <div class="section-divider box-container"><div class="line"></div><div class="diamond" data-aos="zoom-rotate"></div><div class="line"></div></div>
+
+    <!-- SECTION: Footer -->
+    <footer class="box-container py-20 px-4 text-center relative overflow-hidden section-reveal">
+      <img id="orn-footer-tl" src="https://indoinvite.com/nikah/template/elegan/elegan-gold/EG-AKR2.webp" class="ornament ornament-tl opacity-40 parallax-layer" data-parallax-speed="0.1" alt="" loading="lazy">
+      <img id="orn-footer-tr" src="https://indoinvite.com/nikah/template/elegan/elegan-gold/EG-AKN2.webp" class="ornament ornament-tr opacity-40 parallax-layer" data-parallax-speed="-0.1" alt="" loading="lazy">
+      <div class="relative z-10 max-w-lg mx-auto">
+        <div class="section-header" data-aos="reveal-down" data-aos-duration="900">
+          <div class="section-number">The End</div>
+          <div class="section-subtitle">Thank You</div>
+          <h2 class="section-title">Terima Kasih</h2>
+          <div class="section-title-line"></div>
+        </div>
+        <div class="relative w-[180px] h-[180px] mx-auto mb-8" data-aos="zoom-rotate" data-aos-duration="1200">
+          <div id="val-fotoSampul3" class="circle-img-wrapper absolute inset-0 m-auto" style="width:150px;height:150px;"></div>
+          <img id="border-frame-footer" src="https://indoinvite.com/nikah/template/elegan/elegan-gold/EG-Border.webp" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[230px] max-w-none pointer-events-none" alt="Frame" loading="lazy">
+        </div>
+        <h1 class="text-5xl sm:text-6xl text-gold mb-3" data-aos="reveal-up"><span class="val-pria-nick"></span> & <span class="val-wanita-nick"></span></h1>
+        <p class="text-xs text-gray-400 mt-8">Made with <span id="footer-heart" class="footer-heart text-red-400 px-0.5 text-base">❤️</span> for <span class="val-pria-nick"></span> & <span class="val-wanita-nick"></span></p>
+        <div class="wa-promo-section" data-aos="reveal-up" data-aos-delay="200">
+          <p class="wa-promo-title">Butuh Undangan Digital Seperti Ini?</p>
+          <a href="https://wa.me/6285123569250?text=Halo%2C%20saya%20tertarik%20dengan%20jasa%20pembuatan%20undangan%20digital" target="_blank" rel="noopener noreferrer" class="wa-promo-btn">
+            <i class="fa-brands fa-whatsapp"></i><span>Hubungi via WhatsApp</span>
+          </a>
+          <p class="wa-promo-phone"><i class="fa-solid fa-phone"></i>0851-2356-9250</p>
+        </div>
+      </div>
+      <img id="orn-footer-bl" src="https://indoinvite.com/nikah/template/elegan/elegan-gold/EG-BKR.webp" class="ornament ornament-bl opacity-40 parallax-layer" data-parallax-speed="0.1" alt="" loading="lazy">
+      <img id="orn-footer-br" src="https://indoinvite.com/nikah/template/elegan/elegan-gold/EG-BKN2.webp" class="ornament ornament-br opacity-40 parallax-layer" data-parallax-speed="-0.1" alt="" loading="lazy">
+      <div class="h-[60px]"></div>
+    </footer>
+  </main>
+
+  <!-- Bottom Navigation -->
+  <nav class="fix-menu" id="bottom-nav">
+    <a href="#home" title="Home" data-section="home"><i class="fa-solid fa-house"></i></a>
+    <a href="#couple" title="Couple" data-section="couple"><i class="fa-solid fa-heart"></i></a>
+    <a href="#story" title="Story" data-section="story"><i class="fa-solid fa-book-open"></i></a>
+    <a href="#event" title="Event" data-section="event"><i class="fa-solid fa-calendar-check"></i></a>
+    <a href="#gallery" title="Gallery" data-section="gallery"><i class="fa-solid fa-images"></i></a>
+    <a href="#rsvp" title="RSVP" data-section="rsvp"><i class="fa-solid fa-envelope-open-text"></i></a>
+  </nav>
+
+  <!-- Lightbox -->
+  <div id="lightbox" class="fixed inset-0 bg-black/95 z-[9999999] flex items-center justify-center opacity-0 pointer-events-none cursor-zoom-out p-4">
+    <button data-lb-close class="absolute top-4 right-4 text-white/60 hover:text-white text-3xl font-bold cursor-pointer w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 transition z-50">×</button>
+    <button data-lb-prev class="lb-nav lb-prev z-50"><i class="fa-solid fa-chevron-left"></i></button>
+    <img id="lightbox-img" src="" class="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl transform scale-95 relative z-10" alt="Gallery">
+    <button data-lb-next class="lb-nav lb-next z-50"><i class="fa-solid fa-chevron-right"></i></button>
+    <div class="lb-counter z-50" id="lb-counter">1 / 6</div>
+  </div>
+
+  <!-- PIN Modal -->
+  <div id="pin-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999999] flex items-center justify-center opacity-0 pointer-events-none px-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm transform scale-95" id="pin-modal-content">
+      <div class="p-6 text-center">
+        <div class="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style="background: linear-gradient(135deg, var(--gold-mid), var(--gold));"><i class="fa-solid fa-lock text-white text-2xl"></i></div>
+        <h3 class="text-xl font-bold text-gray-800 mb-2">Verifikasi Admin</h3>
+        <p class="text-sm text-gray-500 mb-6">Masukkan PIN 4 digit untuk mengakses pengaturan</p>
+        <div class="flex justify-center gap-3 mb-6">
+          <input type="password" inputmode="numeric" maxlength="1" class="pin-input" data-pin-index="0" autocomplete="off">
+          <input type="password" inputmode="numeric" maxlength="1" class="pin-input" data-pin-index="1" autocomplete="off">
+          <input type="password" inputmode="numeric" maxlength="1" class="pin-input" data-pin-index="2" autocomplete="off">
+          <input type="password" inputmode="numeric" maxlength="1" class="pin-input" data-pin-index="3" autocomplete="off">
+        </div>
+        <p id="pin-error" class="text-red-500 text-xs mb-4 hidden">PIN salah, silakan coba lagi</p>
+        <div class="flex gap-3">
+          <button onclick="closePinModal()" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-600 py-3 rounded-xl font-semibold transition">Batal</button>
+          <button onclick="verifyPin()" id="btn-verify-pin" class="flex-1 button-gold py-3 rounded-xl font-semibold">Verifikasi</button>
+        </div>
+        <p class="text-[10px] text-gray-400 mt-4">Default PIN: <strong>1234</strong> (ganti setelah login pertama)</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal (disingkat - struktur sama dengan aslinya) -->
+  <div id="settings-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[999999] flex items-center justify-center opacity-0 pointer-events-none px-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[92vh] flex flex-col transform scale-95" id="settings-modal-content">
+      <div class="p-4 border-b flex justify-between items-center bg-gray-50 rounded-t-2xl flex-shrink-0">
+        <div class="flex items-center gap-3 flex-1">
+          <button onclick="toggleSettingsMenu()" class="menu-toggle-btn" style="display:none;"><i class="fa-solid fa-bars"></i><span>Menu</span></button>
+          <h2 class="text-lg font-bold font-sans text-gray-800"><i class="fa-solid fa-cog mr-2 text-gold"></i>Pengaturan Undangan</h2>
+          <span id="sync-indicator" class="sync-badge local"><i class="fa-solid fa-database"></i> Lokal</span>
+        </div>
+        <button onclick="closeSettings()" class="text-gray-400 hover:text-red-500 font-bold text-2xl leading-none">×</button>
+      </div>
+      <div class="settings-overlay" onclick="toggleSettingsMenu()"></div>
+      <div class="flex flex-1 overflow-hidden" id="settings-body">
+        <!-- Sidebar & Content akan di-generate oleh JS -->
+        <div class="w-64 bg-gray-50 border-r border-gray-200 overflow-y-auto flex-shrink-0" id="settings-sidebar"></div>
+        <div class="flex-1 overflow-y-auto p-6" id="settings-content"></div>
+      </div>
+      <div class="p-4 border-t bg-gray-50 rounded-b-2xl flex justify-between items-center flex-shrink-0">
+        <p class="text-xs text-gray-500"><i class="fa-solid fa-circle-info mr-1"></i> Jangan lupa klik "Simpan ke Cloud"</p>
+        <div class="flex gap-2">
+          <button onclick="closeSettings()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2.5 rounded-lg text-sm font-semibold transition">Batal</button>
+          <button onclick="saveSettings()" class="button-gold py-2.5 px-8 text-sm"><i class="fa-solid fa-cloud-arrow-up mr-1"></i> Simpan</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden File Input -->
+  <input type="file" id="file-upload-input" accept="image/*,audio/*" style="display:none">
+
+  <!-- Libraries -->
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+
+  <!-- Main JS -->
+  <script src="./js/main.js"></script>
+</body>
+</html>
