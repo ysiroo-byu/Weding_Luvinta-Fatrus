@@ -267,7 +267,7 @@
 <img id="border-frame-footer" src="https://indoinvite.com/nikah/template/elegan/elegan-gold/EG-Border.webp" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[230px] max-w-none pointer-events-none" alt="Frame" loading="lazy">
 </div>
 <h1 class="text-5xl sm:text-6xl text-gold mb-3" data-aos="reveal-up"><span class="val-pria-nick"></span> & <span class="val-wanita-nick"></span></h1>
-<p class="text-xs text-gray-400 mt-8">Made with <span id="footer-heart" class="footer-heart text-red-400 px-0.5 text-base">❤️</span> for <span class="val-pria-nick"></span> & <span class="val-wanita-nick"></span></p>
+<p class="text-xs text-gray-400 mt-8">Made with <span id="footer-heart" class="footer-heart text-red-400 px-0.5 text-base cursor-pointer select-none" title="Klik 5x untuk admin">❤️</span> for <span class="val-pria-nick"></span> & <span class="val-wanita-nick"></span></p>
 <div class="wa-promo-section" data-aos="reveal-up" data-aos-delay="200">
 <p class="wa-promo-title">Butuh Undangan Digital Seperti Ini?</p>
 <a href="https://wa.me/6285123569250?text=Halo%2C%20saya%20tertarik%20dengan%20jasa%20pembuatan%20undangan%20digital" target="_blank" rel="noopener noreferrer" class="wa-promo-btn">
@@ -296,7 +296,74 @@
 <button data-lb-next class="lb-nav lb-next z-50"><i class="fa-solid fa-chevron-right"></i></button>
 <div class="lb-counter z-50" id="lb-counter">1 / 6</div>
 </div>
+
+<!-- ✅ PIN Modal - INI YANG HILANG DI HTML ANDA -->
+<div id="pin-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999999] flex items-center justify-center opacity-0 pointer-events-none px-4">
+<div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm transform scale-95" id="pin-modal-content">
+<div class="p-6 text-center">
+<div class="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style="background: linear-gradient(135deg, var(--gold-mid), var(--gold));">
+<i class="fa-solid fa-lock text-white text-2xl"></i>
+</div>
+<h3 class="text-xl font-bold text-gray-800 mb-2">Verifikasi Admin</h3>
+<p class="text-sm text-gray-500 mb-6">Masukkan PIN 4 digit untuk mengakses pengaturan</p>
+<div class="flex justify-center gap-3 mb-6">
+<input type="password" inputmode="numeric" maxlength="1" class="pin-input" data-pin-index="0" autocomplete="off">
+<input type="password" inputmode="numeric" maxlength="1" class="pin-input" data-pin-index="1" autocomplete="off">
+<input type="password" inputmode="numeric" maxlength="1" class="pin-input" data-pin-index="2" autocomplete="off">
+<input type="password" inputmode="numeric" maxlength="1" class="pin-input" data-pin-index="3" autocomplete="off">
+</div>
+<p id="pin-error" class="text-red-500 text-xs mb-4 hidden">PIN salah, silakan coba lagi</p>
+<div class="flex gap-3">
+<button onclick="closePinModal()" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-600 py-3 rounded-xl font-semibold transition">Batal</button>
+<button onclick="verifyPin()" id="btn-verify-pin" class="flex-1 button-gold py-3 rounded-xl font-semibold">Verifikasi</button>
+</div>
+<p class="text-[10px] text-gray-400 mt-4">Default PIN: <strong>1234</strong></p>
+</div>
+</div>
+</div>
+
+<!-- ✅ Settings Modal - INI JUGA HILANG -->
+<div id="settings-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[999999] flex items-center justify-center opacity-0 pointer-events-none px-4">
+<div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[92vh] flex flex-col transform scale-95" id="settings-modal-content">
+<div class="p-4 border-b flex justify-between items-center bg-gray-50 rounded-t-2xl flex-shrink-0">
+<div class="flex items-center gap-3 flex-1">
+<button onclick="toggleSettingsMenu()" class="menu-toggle-btn" style="display:none;"><i class="fa-solid fa-bars"></i><span>Menu</span></button>
+<h2 class="text-lg font-bold font-sans text-gray-800"><i class="fa-solid fa-cog mr-2 text-gold"></i>Pengaturan Undangan</h2>
+<span id="sync-indicator" class="sync-badge local"><i class="fa-solid fa-database"></i> Lokal</span>
+</div>
+<button onclick="closeSettings()" class="text-gray-400 hover:text-red-500 font-bold text-2xl leading-none">×</button>
+</div>
+<div class="settings-overlay" onclick="toggleSettingsMenu()"></div>
+<div class="flex flex-1 overflow-hidden" id="settings-body">
+<div class="w-64 bg-gray-50 border-r border-gray-200 overflow-y-auto flex-shrink-0" id="settings-sidebar">
+<div class="p-4 space-y-2">
+<button onclick="switchSettingsTab('chapters')" class="settings-tab-btn w-full text-left px-4 py-3 rounded-lg font-semibold text-sm transition flex items-center gap-3 bg-gold text-white" data-tab="chapters"><i class="fa-solid fa-layer-group w-5"></i> Chapter</button>
+<button onclick="switchSettingsTab('couple')" class="settings-tab-btn w-full text-left px-4 py-3 rounded-lg font-semibold text-sm transition flex items-center gap-3 text-gray-600 hover:bg-gray-100" data-tab="couple"><i class="fa-solid fa-heart w-5"></i> Mempelai</button>
+<button onclick="switchSettingsTab('design')" class="settings-tab-btn w-full text-left px-4 py-3 rounded-lg font-semibold text-sm transition flex items-center gap-3 text-gray-600 hover:bg-gray-100" data-tab="design"><i class="fa-solid fa-palette w-5"></i> Desain</button>
+<button onclick="switchSettingsTab('events')" class="settings-tab-btn w-full text-left px-4 py-3 rounded-lg font-semibold text-sm transition flex items-center gap-3 text-gray-600 hover:bg-gray-100" data-tab="events"><i class="fa-solid fa-calendar w-5"></i> Acara</button>
+<button onclick="switchSettingsTab('content')" class="settings-tab-btn w-full text-left px-4 py-3 rounded-lg font-semibold text-sm transition flex items-center gap-3 text-gray-600 hover:bg-gray-100" data-tab="content"><i class="fa-solid fa-file-lines w-5"></i> Konten</button>
+<button onclick="switchSettingsTab('banks')" class="settings-tab-btn w-full text-left px-4 py-3 rounded-lg font-semibold text-sm transition flex items-center gap-3 text-gray-600 hover:bg-gray-100" data-tab="banks"><i class="fa-solid fa-building-columns w-5"></i> Rekening</button>
+<button onclick="switchSettingsTab('security')" class="settings-tab-btn w-full text-left px-4 py-3 rounded-lg font-semibold text-sm transition flex items-center gap-3 text-gray-600 hover:bg-gray-100" data-tab="security"><i class="fa-solid fa-shield-halved w-5"></i> Keamanan</button>
+<button onclick="switchSettingsTab('tools')" class="settings-tab-btn w-full text-left px-4 py-3 rounded-lg font-semibold text-sm transition flex items-center gap-3 text-gray-600 hover:bg-gray-100" data-tab="tools"><i class="fa-solid fa-toolbox w-5"></i> Tools</button>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto p-6" id="settings-content">
+<!-- Konten akan di-generate oleh JS -->
+</div>
+</div>
+<div class="p-4 border-t bg-gray-50 rounded-b-2xl flex justify-between items-center flex-shrink-0">
+<p class="text-xs text-gray-500"><i class="fa-solid fa-circle-info mr-1"></i> Jangan lupa klik "Simpan"</p>
+<div class="flex gap-2">
+<button onclick="closeSettings()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2.5 rounded-lg text-sm font-semibold transition">Batal</button>
+<button onclick="saveSettings()" class="button-gold py-2.5 px-8 text-sm"><i class="fa-solid fa-cloud-arrow-up mr-1"></i> Simpan</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ✅ Hidden File Input - INI JUGA HILANG -->
 <input type="file" id="file-upload-input" accept="image/*,audio/*" style="display:none">
+
 <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
 <script src="./js/main.js"></script>
 </body>
