@@ -6,7 +6,7 @@
   'use strict';
 
   // === KONFIGURASI ===
-  const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbxHZX63O8l14Ksa91PIGhdkjIMsLoPodVdmV_3C9ZU0WkSEDmhaoV_lCQj4cm6R9d1g/exec";
+  const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbxlEj-baHVv-fx-SfHtasEdhzGVCnRF6sT5RrCi0T9Ou8H3qfkCBcg5jDc56umUjyk/exec";
   const GALLERY_COUNT = 6;
   const FETCH_TIMEOUT = 30000; // ✅ DIUBAH: 30 detik untuk Google Apps Script
 
