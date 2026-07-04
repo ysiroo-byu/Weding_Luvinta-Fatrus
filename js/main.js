@@ -8,7 +8,7 @@
   // === KONFIGURASI ===
   const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbxHZX63O8l14Ksa91PIGhdkjIMsLoPodVdmV_3C9ZU0WkSEDmhaoV_lCQj4cm6R9d1g/exec";
   const GALLERY_COUNT = 6;
-  const FETCH_TIMEOUT = 15000;
+  const FETCH_TIMEOUT = 30000; // ✅ DIUBAH: 30 detik untuk Google Apps Script
 
   // === STATE ===
   let appData = null;
@@ -23,7 +23,7 @@
   let currentGalleryCount = 6;
   let deferredPrompt = null;
   
-  // ✅ STATE ADMIN (YANG HILANG SEBELUMNYA)
+  // ✅ STATE ADMIN
   let ADMIN_PIN = null;
   let bankIdCounter = 3;
   let pendingUploadField = null;
@@ -74,7 +74,7 @@
     }
   };
 
-  // ✅ ARRAY DEKORASI (YANG HILANG SEBELUMNYA)
+  // ✅ ARRAY DEKORASI
   const decorFields = [
     'backgroundImg', 'borderFrame',
     'ornamentHomeTL', 'ornamentHomeTR', 'ornamentHomeBL', 'ornamentHomeBR',
@@ -123,6 +123,14 @@
     c.appendChild(t);
     requestAnimationFrame(() => requestAnimationFrame(() => t.classList.add('show')));
     setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 400); }, 3000);
+  }
+
+  function updateSyncBadge(source) {
+    const el = $('sync-indicator');
+    if (!el) return;
+    if (source === 'cloud') { el.className = 'sync-badge cloud'; el.innerHTML = '<i class="fa-solid fa-cloud"></i> Cloud'; }
+    else if (source === 'local') { el.className = 'sync-badge local'; el.innerHTML = '<i class="fa-solid fa-database"></i> Lokal'; }
+    else { el.className = 'sync-badge offline'; el.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Default'; }
   }
 
   // === LOADER & ANIMATIONS ===
@@ -242,7 +250,6 @@
     heartEl.addEventListener('touchend', (e) => { e.preventDefault(); handleTap(e); });
   })();
 
-  // Shortcut Keyboard (Ctrl + Shift + A)
   document.addEventListener('keydown', (e) => {
     if (e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
       e.preventDefault();
@@ -253,8 +260,7 @@
   window.openPinModal = function() {
     const modal = $('pin-modal');
     if (!modal) {
-      // Fallback jika HTML tidak punya modal, langsung redirect ke setting.html (jika ada)
-      if (confirm('Modal PIN tidak ditemukan di HTML. Apakah Anda ingin diarahkan ke halaman setting.html?')) {
+      if (confirm('Modal PIN tidak ditemukan. Redirect ke setting.html?')) {
         window.location.href = 'setting.html';
       }
       return;
@@ -271,7 +277,6 @@
     const err = $('pin-error'); if (err) err.classList.add('hidden');
   };
 
-  // Auto-focus PIN Input
   document.querySelectorAll('.pin-input').forEach(input => {
     input.addEventListener('input', function() {
       if (this.value.length === 1) {
@@ -289,6 +294,7 @@
     });
   });
 
+  // ✅ VERIFIKASI PIN - SINKRON DENGAN GOOGLE SHEET
   window.verifyPin = async function() {
     const inputs = document.querySelectorAll('.pin-input');
     let pin = ''; inputs.forEach(i => pin += i.value);
@@ -296,34 +302,72 @@
     
     const btn = $('btn-verify-pin');
     if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Memverifikasi...'; }
-    
-    // Bypass verifikasi server jika API belum di-deploy (Mode Lokal)
-    if (pin === '1234') {
-        ADMIN_PIN = pin;
-        window.closePinModal();
-        window.openSettings();
-        showToast('Verifikasi berhasil! (Mode Lokal)', 'success');
-        if (btn) { btn.disabled = false; btn.innerHTML = 'Verifikasi'; }
-        return;
-    }
 
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
-      const res = await fetch(GOOGLE_API_URL, { method: 'POST', body: JSON.stringify({ action: "verifyPin", pin: pin }), signal: controller.signal });
+      const res = await fetch(GOOGLE_API_URL, { 
+        method: 'POST', 
+        body: JSON.stringify({ action: "verifyPin", pin: pin }), 
+        signal: controller.signal 
+      });
       clearTimeout(timeoutId);
       const result = await res.json();
+      
       if (result.status === 'success') {
-        ADMIN_PIN = pin; window.closePinModal(); window.openSettings(); showToast('Verifikasi berhasil!', 'success');
-      } else { throw new Error(result.message || 'PIN salah'); }
+        ADMIN_PIN = pin; 
+        window.closePinModal(); 
+        window.openSettings(); 
+        showToast('✅ Verifikasi berhasil!', 'success');
+      } else { 
+        throw new Error(result.message || 'PIN salah'); 
+      }
     } catch (err) {
       console.warn('Verifikasi PIN gagal:', err);
       inputs.forEach(i => i.classList.add('error'));
-      const errEl = $('pin-error'); if (errEl) errEl.classList.remove('hidden');
-      showToast('PIN salah!', 'error');
-      setTimeout(() => { inputs.forEach(i => { i.value = ''; i.classList.remove('filled', 'error'); }); if ($('pin-error')) $('pin-error').classList.add('hidden'); }, 1500);
+      const errEl = $('pin-error'); 
+      if (errEl) errEl.classList.remove('hidden');
+      showToast('❌ PIN salah atau koneksi gagal!', 'error');
+      setTimeout(() => { 
+        inputs.forEach(i => { i.value = ''; i.classList.remove('filled', 'error'); }); 
+        if ($('pin-error')) $('pin-error').classList.add('hidden'); 
+      }, 1500);
     } finally {
       if (btn) { btn.disabled = false; btn.innerHTML = 'Verifikasi'; }
+    }
+  };
+
+  // ✅ GANTI PIN
+  window.changePin = async function() {
+    const oldPin = $('set-oldPin').value;
+    const newPin = $('set-newPin').value;
+    const confirmPin = $('set-confirmPin').value;
+    
+    if (!oldPin || !newPin || !confirmPin) { showToast('Semua field harus diisi', 'error'); return; }
+    if (newPin.length < 4 || !/^\d+$/.test(newPin)) { showToast('PIN baru harus 4 digit angka', 'error'); return; }
+    if (newPin !== confirmPin) { showToast('Konfirmasi PIN tidak cocok', 'error'); return; }
+    if (oldPin === newPin) { showToast('PIN baru tidak boleh sama dengan PIN lama', 'error'); return; }
+    
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+      const res = await fetch(GOOGLE_API_URL, { 
+        method: 'POST', 
+        body: JSON.stringify({ action: "changePin", oldPin: oldPin, newPin: newPin }), 
+        signal: controller.signal 
+      });
+      clearTimeout(timeoutId);
+      const result = await res.json();
+      
+      if (result.status === 'success') {
+        ADMIN_PIN = newPin;
+        $('set-oldPin').value = ''; $('set-newPin').value = ''; $('set-confirmPin').value = '';
+        showToast('✅ PIN berhasil diubah!', 'success');
+      } else { 
+        throw new Error(result.message); 
+      }
+    } catch (err) { 
+      showToast('❌ Gagal ubah PIN: ' + err.message, 'error'); 
     }
   };
 
@@ -333,21 +377,21 @@
   window.openSettings = function() {
     if (!appData) appData = JSON.parse(JSON.stringify(defaultData));
     populateSettingsForm(appData);
+    renderGuestHistory();
     const modal = $('settings-modal');
     if (modal) {
-        modal.classList.add('active');
-        document.body.style.overflow = 'hidden';
+      modal.classList.add('active');
+      document.body.style.overflow = 'hidden';
     } else {
-        // Fallback jika menggunakan setting.html terpisah
-        window.location.href = 'setting.html';
+      window.location.href = 'setting.html';
     }
   };
 
   window.closeSettings = function() {
     const modal = $('settings-modal');
     if (modal) {
-        modal.classList.remove('active');
-        document.body.style.overflow = '';
+      modal.classList.remove('active');
+      document.body.style.overflow = '';
     }
   };
 
@@ -357,29 +401,280 @@
     if (selectedTab) selectedTab.classList.remove('hidden');
     
     document.querySelectorAll('.settings-tab-btn').forEach(btn => {
-      if (btn.dataset.tab === tabName) { btn.classList.remove('text-gray-600', 'hover:bg-gray-100'); btn.classList.add('bg-gold', 'text-white'); }
-      else { btn.classList.add('text-gray-600', 'hover:bg-gray-100'); btn.classList.remove('bg-gold', 'text-white'); }
+      if (btn.dataset.tab === tabName) { 
+        btn.classList.remove('text-gray-600', 'hover:bg-gray-100'); 
+        btn.classList.add('bg-gold', 'text-white'); 
+      } else { 
+        btn.classList.add('text-gray-600', 'hover:bg-gray-100'); 
+        btn.classList.remove('bg-gold', 'text-white'); 
+      }
     });
+    
+    if (window.innerWidth <= 768) {
+      const body = $('settings-body');
+      const overlay = document.querySelector('.settings-overlay');
+      if (body) body.classList.remove('sidebar-active');
+      if (overlay) overlay.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+  };
+
+  // ✅ FUNGSI YANG HILANG: toggleSettingsMenu
+  window.toggleSettingsMenu = function() {
+    const body = $('settings-body');
+    const overlay = document.querySelector('.settings-overlay');
+    if (!body || !overlay) return;
+    
+    if (body.classList.contains('sidebar-active')) {
+      body.classList.remove('sidebar-active');
+      overlay.classList.remove('active');
+      document.body.style.overflow = '';
+    } else {
+      body.classList.add('sidebar-active');
+      overlay.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
   };
 
   function populateSettingsForm(data) {
-    const fields = ['priaNick', 'priaFull', 'priaOrtu', 'priaIg', 'wanitaNick', 'wanitaFull', 'wanitaOrtu', 'wanitaIg', 'fotoSampul', 'fotoPria', 'fotoWanita', 'countdownTarget', 'musicUrl', 'akadDate', 'akadTime', 'akadLokasi', 'akadMapUrl', 'resepsiDate', 'resepsiTime', 'resepsiLokasi', 'resepsiMapUrl', 'dinnerDate', 'dinnerTime', 'dinnerLokasi', 'dinnerMapUrl', 'mapIframeUrl', 'story1Title', 'story1Desc', 'story1Img', 'story2Title', 'story2Desc', 'story2Img', 'videoYoutubeUrl'];
-    fields.forEach(f => { const el = $('set-' + f); if (el && data[f] !== undefined) el.value = data[f]; });
-    decorFields.forEach(f => { const el = $('set-' + f); if (el && data[f] !== undefined) el.value = data[f]; });
-    for (let i = 1; i <= currentGalleryCount; i++) { const el = $('set-galeri' + i); if (el && data['galeri' + i]) el.value = data['galeri' + i]; }
-    const showVideoEl = $('set-showVideo'); if (showVideoEl) showVideoEl.checked = data.showVideo !== false;
+    const fields = ['priaNick', 'priaFull', 'priaOrtu', 'priaIg', 'wanitaNick', 'wanitaFull', 'wanitaOrtu', 'wanitaIg', 
+                    'fotoSampul', 'fotoPria', 'fotoWanita', 'countdownTarget', 'musicUrl', 
+                    'akadDate', 'akadTime', 'akadLokasi', 'akadMapUrl', 
+                    'resepsiDate', 'resepsiTime', 'resepsiLokasi', 'resepsiMapUrl', 
+                    'dinnerDate', 'dinnerTime', 'dinnerLokasi', 'dinnerMapUrl', 
+                    'mapIframeUrl', 'story1Title', 'story1Desc', 'story1Img', 
+                    'story2Title', 'story2Desc', 'story2Img', 'videoYoutubeUrl'];
+    
+    fields.forEach(f => { 
+      const el = $('set-' + f); 
+      if (el && data[f] !== undefined) el.value = data[f]; 
+    });
+    
+    decorFields.forEach(f => { 
+      const el = $('set-' + f); 
+      if (el && data[f] !== undefined) el.value = data[f]; 
+    });
+    
+    for (let i = 1; i <= currentGalleryCount; i++) { 
+      const el = $('set-galeri' + i); 
+      if (el && data['galeri' + i]) el.value = data['galeri' + i]; 
+    }
+    
+    const showVideoEl = $('set-showVideo'); 
+    if (showVideoEl) showVideoEl.checked = data.showVideo !== false;
     
     renderBankSettings();
     buildDecorGrids(data);
     buildGalleryUrlFields();
-    if (data.chapters) { currentChapters = data.chapters; renderChaptersList(); }
+    
+    if (data.chapters) { 
+      currentChapters = data.chapters; 
+    } else { 
+      currentChapters = JSON.parse(JSON.stringify(defaultData.chapters)); 
+    }
+    renderChaptersList();
+    updateSyncBadge(dataSource);
+    refreshAllPreviews(data);
   }
 
+  // ✅ SIMPAN SETTINGS KE CLOUD
   window.saveSettings = function() {
-    showToast('Simpan settings belum di-setup penuh di file ini. Gunakan setting.html untuk hasil maksimal.', 'info');
-    // Logic save ke cloud bisa ditambahkan di sini jika menggunakan single page
+    if (!ADMIN_PIN) {
+      showToast('❌ Sesi admin expired. Silakan login ulang.', 'error');
+      window.closeSettings();
+      setTimeout(window.openPinModal, 300);
+      return;
+    }
+    
+    const btn = $('btn-save-settings');
+    const statusEl = $('save-status');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Menyimpan...'; }
+    
+    const fields = ['priaNick', 'priaFull', 'priaOrtu', 'priaIg', 'wanitaNick', 'wanitaFull', 'wanitaOrtu', 'wanitaIg', 
+                    'fotoSampul', 'fotoPria', 'fotoWanita', 'countdownTarget', 'musicUrl', 
+                    'akadDate', 'akadTime', 'akadLokasi', 'akadMapUrl', 
+                    'resepsiDate', 'resepsiTime', 'resepsiLokasi', 'resepsiMapUrl', 
+                    'dinnerDate', 'dinnerTime', 'dinnerLokasi', 'dinnerMapUrl', 
+                    'mapIframeUrl', 'story1Title', 'story1Desc', 'story1Img', 
+                    'story2Title', 'story2Desc', 'story2Img', 'videoYoutubeUrl'];
+    
+    const payload = { action: "settings", adminPin: ADMIN_PIN };
+    
+    fields.forEach(f => { 
+      const el = $('set-' + f); 
+      if (el && el.value) payload[f] = el.value; 
+    });
+    
+    decorFields.forEach(f => { 
+      const el = $('set-' + f); 
+      if (el && el.value) payload[f] = el.value; 
+    });
+    
+    for (let i = 1; i <= currentGalleryCount; i++) { 
+      const el = $('set-galeri' + i); 
+      if (el && el.value) payload['galeri' + i] = el.value; 
+    }
+    
+    const showVideoEl = $('set-showVideo');
+    payload.showVideo = showVideoEl ? showVideoEl.checked : true;
+    payload.banks = collectBankSettings();
+    payload.chapters = currentChapters;
+    
+    const newData = Object.assign({}, appData, payload);
+    newData.banks = payload.banks;
+    newData.bukuTamu = rsvpList;
+    newData.chapters = currentChapters;
+    applyDataToHTML(newData);
+    
+    try { localStorage.setItem('undanganData_v2', JSON.stringify(newData)); } catch (e) {}
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+    
+    fetch(GOOGLE_API_URL, { 
+      method: 'POST', 
+      body: JSON.stringify(payload), 
+      signal: controller.signal 
+    })
+      .then(r => { clearTimeout(timeoutId); return r.json(); })
+      .then(result => {
+        if (result.status === 'success') { 
+          dataSource = 'cloud'; 
+          updateSyncBadge('cloud'); 
+          if (statusEl) statusEl.textContent = '✅ Tersinkron ke Cloud!'; 
+          showToast('✅ Data tersimpan!', 'success'); 
+        } else { 
+          throw new Error(result.message); 
+        }
+      })
+      .catch(err => { 
+        dataSource = 'local'; 
+        updateSyncBadge('local'); 
+        if (statusEl) statusEl.textContent = '⚠️ Tersimpan Lokal'; 
+        showToast('⚠️ Lokal saja: ' + err.message, 'info'); 
+      })
+      .finally(() => {
+        setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 3000);
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up mr-1"></i> Simpan Perubahan'; }
+      });
   };
 
+  // ✅ REFRESH DARI CLOUD
+  window.refreshFromCloud = function() {
+    const btn = $('btn-refresh-cloud');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengambil...'; }
+    
+    window.fetchCloudData().then(cloudData => {
+      if (cloudData) {
+        const merged = JSON.parse(JSON.stringify(defaultData));
+        for (const key in cloudData) { 
+          if (key !== 'bukuTamu' && key !== 'banks') merged[key] = cloudData[key]; 
+        }
+        if (cloudData.banks && Array.isArray(cloudData.banks)) merged.banks = cloudData.banks;
+        merged.bukuTamu = cloudData.bukuTamu || [];
+        if (cloudData.showVideo !== undefined) merged.showVideo = cloudData.showVideo;
+        if (cloudData.chapters) merged.chapters = cloudData.chapters;
+        
+        applyDataToHTML(merged);
+        try { localStorage.setItem('undanganData_v2', JSON.stringify(merged)); } catch (e) {}
+        dataSource = 'cloud'; 
+        updateSyncBadge('cloud');
+        showToast('✅ Data dari cloud!', 'success');
+      } else { 
+        showToast('⚠️ Menggunakan data default', 'info'); 
+      }
+    }).finally(() => { 
+      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> Tarik dari Cloud'; } 
+    });
+  };
+
+  // ✅ RENDER BANK SETTINGS
+  function renderBankSettings() {
+    const container = $('bank-settings-container');
+    if (!container) return;
+    
+    let banks = (appData && appData.banks) ? appData.banks : [];
+    if (!banks.length) { 
+      banks = [
+        { id: 'b1', name: 'BCA', rek: '12345678', an: 'Luvinta', visible: true, logo: '' },
+        { id: 'b2', name: 'BNI', rek: '0982309823', an: 'Fatrus', visible: true, logo: '' }
+      ]; 
+      appData.banks = banks; 
+    }
+    
+    banks.forEach(b => { 
+      if (b.id && b.id.startsWith('b')) { 
+        const num = parseInt(b.id.replace('b', '')); 
+        if (num >= bankIdCounter) bankIdCounter = num + 1; 
+      } 
+    });
+    
+    container.innerHTML = banks.map(bank => {
+      const checked = bank.visible !== false ? 'checked' : '';
+      const logoUrl = bank.logo || '';
+      
+      return `
+        <div class="bank-entry" data-bank-id="${bank.id}">
+          <button type="button" class="remove-bank-btn" onclick="removeBankSetting('${bank.id}')" title="Hapus"><i class="fa-solid fa-trash-can"></i></button>
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-2">
+            <div><label class="text-[10px] text-gray-400">Nama Bank</label><input type="text" class="bank-field-name w-full px-2 py-1.5 border border-gray-200 rounded-lg outline-none text-xs focus:border-gold-light" value="${escapeHtml(bank.name || '')}" placeholder="BCA"></div>
+            <div><label class="text-[10px] text-gray-400">No. Rekening</label><input type="text" class="bank-field-rek w-full px-2 py-1.5 border border-gray-200 rounded-lg outline-none text-xs focus:border-gold-light" value="${escapeHtml(bank.rek || '')}" placeholder="12345678"></div>
+            <div><label class="text-[10px] text-gray-400">Atas Nama</label><input type="text" class="bank-field-an w-full px-2 py-1.5 border border-gray-200 rounded-lg outline-none text-xs focus:border-gold-light" value="${escapeHtml(bank.an || '')}" placeholder="Nama"></div>
+            <div class="flex items-center justify-start sm:justify-end gap-2 pt-1"><label class="bank-visibility-toggle text-xs"><input type="checkbox" class="bank-field-visible" ${checked}> Tampilkan</label></div>
+          </div>
+          <div class="bank-logo-input-wrap">
+            <div class="bank-logo-preview" id="preview-banklogo-${bank.id}">
+              ${logoUrl ? `<img id="bank-logo-img-${bank.id}" src="${escapeHtml(logoUrl)}" alt="logo">` : `<span id="bank-logo-noimg-${bank.id}" class="no-logo"><i class="fa-regular fa-image"></i></span>`}
+            </div>
+            <div class="bank-logo-field">
+              <label class="text-[10px] text-gray-400 font-semibold">Logo Bank (PNG)</label>
+              <input type="text" id="set-banklogo-${bank.id}" class="bank-field-logo w-full px-2 py-1 border border-gray-200 rounded outline-none text-[10px] focus:border-gold-light mt-1" value="${escapeHtml(logoUrl)}" placeholder="URL logo bank">
+            </div>
+            <button type="button" class="bank-logo-upload-btn" onclick="triggerUpload('set-banklogo-${bank.id}', 'banklogo-${bank.id}')" title="Upload Logo"><i class="fa-solid fa-upload"></i></button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  window.addBankSetting = function() {
+    if (!appData) return;
+    if (!appData.banks) appData.banks = [];
+    const newId = 'b' + bankIdCounter++;
+    appData.banks.push({ id: newId, name: '', rek: '', an: '', visible: true, logo: '' });
+    renderBankSettings();
+    showToast('✅ Rekening baru ditambahkan', 'success');
+  };
+
+  window.removeBankSetting = function(id) {
+    if (!appData || !appData.banks) return;
+    if (appData.banks.length <= 1) { showToast('❌ Minimal 1 rekening', 'error'); return; }
+    appData.banks = appData.banks.filter(b => b.id !== id);
+    renderBankSettings();
+    showToast('ℹ️ Rekening dihapus', 'info');
+  };
+
+  function collectBankSettings() {
+    const container = $('bank-settings-container');
+    if (!container) return [];
+    const entries = container.querySelectorAll('.bank-entry');
+    const result = [];
+    
+    entries.forEach(entry => {
+      const id = entry.dataset.bankId || 'b' + bankIdCounter++;
+      const name = entry.querySelector('.bank-field-name')?.value || '';
+      const rek = entry.querySelector('.bank-field-rek')?.value || '';
+      const an = entry.querySelector('.bank-field-an')?.value || '';
+      const visible = entry.querySelector('.bank-field-visible')?.checked !== false;
+      const logoInput = entry.querySelector('.bank-field-logo');
+      const logo = logoInput ? logoInput.value : '';
+      result.push({ id, name, rek, an, visible, logo });
+    });
+    
+    return result;
+  }
+
+  // ✅ BUILD DECOR GRIDS
   function buildDecorGrids(data) {
     const sections = {
       'decor-home-grid': ['ornamentHomeTL', 'ornamentHomeTR', 'ornamentHomeBL', 'ornamentHomeBR'],
@@ -388,193 +683,1155 @@
       'decor-footer-grid': ['ornamentFooterTL', 'ornamentFooterTR', 'ornamentFooterBL', 'ornamentFooterBR'],
       'decor-loader-grid': ['loaderOrnamentTL', 'loaderOrnamentTR', 'loaderOrnamentBL', 'loaderOrnamentBR']
     };
+    
     for (const gridId in sections) {
-      const grid = $(gridId); if (!grid) continue; grid.innerHTML = '';
+      const grid = $(gridId); 
+      if (!grid) continue; 
+      grid.innerHTML = '';
+      
       sections[gridId].forEach(field => {
         const label = decorLabels[field] || field;
         const url = (data && data[field]) ? data[field] : '';
-        const item = document.createElement('div'); item.className = 'decor-item';
-        item.innerHTML = `<div class="decor-preview" id="preview-${field}"><img src="${escapeHtml(url)}" alt="preview" ${url ? '' : 'style="display:none;"'}><span class="no-image" ${url ? 'style="display:none;"' : ''}><i class="fa-regular fa-image"></i></span></div><div class="decor-info"><div class="decor-label">${label}</div><input type="text" id="set-${field}" value="${escapeHtml(url)}" class="w-full px-2 py-1 border border-gray-200 rounded text-[10px] outline-none focus:border-gold-light" placeholder="URL"></div>`;
+        const item = document.createElement('div'); 
+        item.className = 'decor-item';
+        
+        item.innerHTML = `
+          <div class="decor-preview" id="preview-${field}">
+            <img src="${escapeHtml(url)}" alt="preview" ${url ? '' : 'style="display:none;"'}>
+            <span class="no-image" ${url ? 'style="display:none;"' : ''}><i class="fa-regular fa-image"></i></span>
+          </div>
+          <div class="decor-info">
+            <div class="decor-label">${label}</div>
+            <input type="text" id="set-${field}" value="${escapeHtml(url)}" class="w-full px-2 py-1 border border-gray-200 rounded text-[10px] outline-none focus:border-gold-light" placeholder="URL">
+          </div>
+          <button type="button" onclick="triggerUpload('set-${field}', '${field}')" class="decor-btn" title="Upload"><i class="fa-solid fa-upload"></i></button>
+        `;
+        
         grid.appendChild(item);
       });
     }
   }
 
-  function renderBankSettings() { /* Placeholder untuk settings */ }
+  window.resetDecorToDefault = function() {
+    if (!confirm('Reset semua dekorasi ke default?')) return;
+    
+    decorFields.forEach(f => {
+      if (defaultData[f]) {
+        const el = $('set-' + f);
+        if (el) el.value = defaultData[f];
+        if (appData) appData[f] = defaultData[f];
+        updatePreview(f, defaultData[f]);
+      }
+    });
+    
+    buildDecorGrids(appData);
+    showToast('✅ Dekorasi direset ke default', 'success');
+  };
+
+  // ✅ BUILD GALLERY URL FIELDS
   function buildGalleryUrlFields() {
-    const grid = $('gallery-url-grid'); if (!grid) return; grid.innerHTML = '';
+    const grid = $('gallery-url-grid'); 
+    if (!grid) return; 
+    grid.innerHTML = '';
+    
     for (let i = 1; i <= currentGalleryCount; i++) {
-      const div = document.createElement('div'); div.className = 'space-y-1 bg-gray-50 p-2 rounded-lg border border-gray-100';
-      div.innerHTML = `<label class="text-[11px] text-gray-500 font-semibold">Galeri ${i}</label><div class="photo-upload-row"><div class="preview-wrap" id="preview-galeri${i}"><img src="" alt="preview" class="hidden"><span class="no-image"><i class="fa-regular fa-image"></i></span></div><div class="field-group flex gap-2"><input type="text" id="set-galeri${i}" class="flex-1 px-2.5 py-1.5 border border-gray-200 rounded-lg outline-none text-xs" placeholder="URL gambar"></div></div>`;
+      const div = document.createElement('div'); 
+      div.className = 'space-y-1 bg-gray-50 p-2 rounded-lg border border-gray-100';
+      div.id = 'gallery-slot-' + i;
+      
+      div.innerHTML = `
+        <label class="text-[11px] text-gray-500 font-semibold">Galeri ${i}</label>
+        <div class="photo-upload-row">
+          <div class="preview-wrap" id="preview-galeri${i}">
+            <img src="" alt="preview" class="hidden" id="preview-img-galeri${i}">
+            <span class="no-image" id="noimg-galeri${i}"><i class="fa-regular fa-image"></i></span>
+          </div>
+          <div class="field-group flex gap-2">
+            <input type="text" id="set-galeri${i}" class="flex-1 px-2.5 py-1.5 border border-gray-200 rounded-lg outline-none text-xs focus:border-gold-light" placeholder="URL gambar">
+            <button type="button" onclick="triggerUpload('set-galeri${i}', 'galeri${i}')" class="bg-gold text-white px-3 py-1.5 rounded-lg text-xs hover:bg-gold-mid transition whitespace-nowrap">
+              <i class="fa-solid fa-upload mr-1"></i> Upload
+            </button>
+          </div>
+        </div>
+      `;
+      
       grid.appendChild(div);
     }
+    
+    if ($('gallery-slot-count')) $('gallery-slot-count').textContent = currentGalleryCount;
   }
+
+  window.addGallerySlot = function() {
+    if (currentGalleryCount >= 20) { showToast('❌ Maksimal 20 foto galeri', 'error'); return; }
+    currentGalleryCount++;
+    
+    const grid = $('gallery-url-grid');
+    const newIndex = currentGalleryCount;
+    const div = document.createElement('div');
+    div.className = 'space-y-1 bg-gray-50 p-2 rounded-lg border border-gray-100';
+    div.id = 'gallery-slot-' + newIndex;
+    
+    div.innerHTML = `
+      <label class="text-[11px] text-gray-500 font-semibold">Galeri ${newIndex}</label>
+      <div class="photo-upload-row">
+        <div class="preview-wrap" id="preview-galeri${newIndex}">
+          <img src="" alt="preview" class="hidden" id="preview-img-galeri${newIndex}">
+          <span class="no-image" id="noimg-galeri${newIndex}"><i class="fa-regular fa-image"></i></span>
+        </div>
+        <div class="field-group flex gap-2">
+          <input type="text" id="set-galeri${newIndex}" class="flex-1 px-2.5 py-1.5 border border-gray-200 rounded-lg outline-none text-xs focus:border-gold-light" placeholder="URL gambar">
+          <button type="button" onclick="triggerUpload('set-galeri${newIndex}', 'galeri${newIndex}')" class="bg-gold text-white px-3 py-1.5 rounded-lg text-xs hover:bg-gold-mid transition whitespace-nowrap">
+            <i class="fa-solid fa-upload mr-1"></i> Upload
+          </button>
+        </div>
+      </div>
+    `;
+    
+    grid.appendChild(div);
+    if ($('gallery-slot-count')) $('gallery-slot-count').textContent = currentGalleryCount;
+    try { localStorage.setItem('gallerySlotCount', String(currentGalleryCount)); } catch (e) {}
+    showToast('✅ Slot galeri ditambahkan', 'success');
+  };
+
+  window.removeGallerySlot = function() {
+    if (currentGalleryCount <= 6) { showToast('❌ Minimal 6 slot galeri', 'error'); return; }
+    const slot = $('gallery-slot-' + currentGalleryCount);
+    if (slot) {
+      slot.remove();
+      currentGalleryCount--;
+      if ($('gallery-slot-count')) $('gallery-slot-count').textContent = currentGalleryCount;
+      try { localStorage.setItem('gallerySlotCount', String(currentGalleryCount)); } catch (e) {}
+      showToast('ℹ️ Slot galeri dihapus', 'info');
+    }
+  };
+
+  // ✅ RENDER CHAPTERS LIST
   function renderChaptersList() {
-    const container = $('chapters-list'); if (!container) return;
+    const container = $('chapters-list'); 
+    if (!container) return;
+    
     let html = '';
     for (const key in currentChapters) {
-      const c = currentChapters[key]; const isActive = c.active !== false;
-      html += `<div class="chapter-item ${isActive ? '' : 'disabled'}"><div class="chapter-info"><div class="chapter-name">${escapeHtml(c.label)}</div></div><span class="chapter-status ${isActive ? 'active' : 'inactive'}">${isActive ? 'Aktif' : 'Nonaktif'}</span></div>`;
+      const c = currentChapters[key]; 
+      const isActive = c.active !== false;
+      
+      html += `
+        <div class="chapter-item ${isActive ? '' : 'disabled'}" data-chapter="${key}">
+          <div class="chapter-info">
+            <div class="chapter-name">${escapeHtml(c.label)}</div>
+            <div class="chapter-desc">Section ID: <code class="text-[10px] bg-gray-100 px-1.5 py-0.5 rounded">${key}</code></div>
+          </div>
+          <span class="chapter-status ${isActive ? 'active' : 'inactive'}">${isActive ? 'Aktif' : 'Nonaktif'}</span>
+          <label class="toggle-switch">
+            <input type="checkbox" ${isActive ? 'checked' : ''} onchange="toggleChapter('${key}', this.checked)">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      `;
     }
+    
     container.innerHTML = html;
   }
 
+  window.toggleChapter = function(chapterId, isActive) {
+    if (currentChapters[chapterId]) {
+      currentChapters[chapterId].active = isActive;
+      renderChaptersList();
+      applyChapterVisibility();
+      showToast(`ℹ️ Chapter ${currentChapters[chapterId].label} ${isActive ? 'diaktifkan' : 'dinonaktifkan'}`, 'info');
+    }
+  };
+
+  window.toggleAllChapters = function(active) {
+    for (const key in currentChapters) {
+      currentChapters[key].active = active;
+    }
+    renderChaptersList();
+    applyChapterVisibility();
+    showToast(`ℹ️ Semua chapter ${active ? 'diaktifkan' : 'dinonaktifkan'}`, 'info');
+  };
+
+  window.resetChaptersToDefault = function() {
+    if (confirm('Reset semua chapter ke pengaturan default?')) {
+      currentChapters = JSON.parse(JSON.stringify(defaultData.chapters));
+      renderChaptersList();
+      applyChapterVisibility();
+      showToast('✅ Chapter direset ke default', 'success');
+    }
+  };
+
+  // ✅ UPLOAD FILE
+  window.triggerUpload = function(fieldId, previewId, type) {
+    pendingUploadField = fieldId;
+    pendingUploadPreviewId = previewId || fieldId;
+    pendingUploadType = type || 'image';
+    
+    const input = $('file-upload-input');
+    if (pendingUploadType === 'audio') { 
+      input.setAttribute('accept', 'audio/*'); 
+    } else { 
+      input.setAttribute('accept', 'image/*'); 
+    }
+    
+    input.click();
+  };
+
+  $('file-upload-input').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file || !pendingUploadField) return;
+    
+    const maxSize = pendingUploadType === 'audio' ? 10 * 1024 * 1024 : 2 * 1024 * 1024;
+    const maxLabel = pendingUploadType === 'audio' ? '10MB' : '2MB';
+    
+    if (file.size > maxSize) { 
+      showToast(`❌ Ukuran file terlalu besar (maks ${maxLabel})`, 'error'); 
+      return; 
+    }
+    
+    showToast(`ℹ️ Mengupload ${file.name} ...`, 'info');
+    
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      const base64 = ev.target.result;
+      const payload = { 
+        action: 'upload', 
+        filename: file.name, 
+        fieldName: pendingUploadField, 
+        base64Data: base64 
+      };
+      
+      fetch(GOOGLE_API_URL, { 
+        method: 'POST', 
+        body: JSON.stringify(payload) 
+      })
+        .then(r => r.json())
+        .then(result => {
+          if (result.status === 'success' && result.link) {
+            const field = $(pendingUploadField);
+            if (field) {
+              field.value = result.link;
+              updatePreview(pendingUploadPreviewId, result.link);
+              showToast('✅ Upload berhasil!', 'success');
+              
+              if (pendingUploadField.indexOf('set-galeri') === 0) {
+                handleGalleryUpload(pendingUploadField, result.link);
+              }
+              
+              if (pendingUploadType === 'audio') {
+                const audio = $('bg-music');
+                if (audio) {
+                  audio.src = result.link; 
+                  audio.load();
+                  audio.play()
+                    .then(() => { 
+                      audio.pause(); 
+                      showToast('✅ Musik berhasil dimuat!', 'success'); 
+                    })
+                    .catch(err => console.warn('Test play gagal:', err));
+                }
+              }
+            }
+          } else { 
+            showToast('❌ Upload gagal: ' + (result.message || 'Unknown error'), 'error'); 
+          }
+        })
+        .catch(err => showToast('❌ Upload gagal: ' + err.message, 'error'))
+        .finally(() => {
+          pendingUploadField = null;
+          pendingUploadPreviewId = null;
+          pendingUploadType = 'image';
+          $('file-upload-input').value = '';
+        });
+    };
+    
+    reader.readAsDataURL(file);
+  });
+
+  function handleGalleryUpload(fieldId, url) {
+    if (!ADMIN_PIN) {
+      showToast('⚠️ Upload berhasil! Jangan lupa klik "Simpan Perubahan"', 'info');
+      return;
+    }
+    
+    showToast('ℹ️ Menyimpan foto ke cloud...', 'info');
+    
+    const galleryPayload = {};
+    for (let i = 1; i <= currentGalleryCount; i++) {
+      const el = $('set-galeri' + i);
+      if (el && el.value) galleryPayload['galeri' + i] = el.value;
+    }
+    
+    const payload = { action: "settings", adminPin: ADMIN_PIN, ...galleryPayload };
+    
+    fetch(GOOGLE_API_URL, { 
+      method: 'POST', 
+      body: JSON.stringify(payload) 
+    })
+      .then(r => r.json())
+      .then(result => {
+        if (result.status === 'success') { 
+          showToast('✅ Foto tersimpan!', 'success'); 
+        } else { 
+          showToast('⚠️ Upload berhasil tapi gagal auto-save', 'error'); 
+        }
+      })
+      .catch(err => {
+        showToast('⚠️ Upload berhasil tapi gagal auto-save. Klik "Simpan Perubahan" manual.', 'error');
+      });
+  }
+
+  // ✅ UPDATE PREVIEW
+  function updatePreview(previewId, url) {
+    const previewWrap = $('preview-' + previewId);
+    if (previewWrap) {
+      const img = previewWrap.querySelector('img');
+      const noImg = previewWrap.querySelector('.no-image');
+      
+      if (img && url) { 
+        img.src = url; 
+        img.classList.remove('hidden'); 
+        if (noImg) noImg.style.display = 'none'; 
+      } else if (img) { 
+        img.classList.add('hidden'); 
+        if (noImg) noImg.style.display = 'inline'; 
+      }
+    }
+    
+    if (previewId === 'fotoPria' && url) {
+      const imgPria = $('val-fotoPria');
+      if (imgPria) { 
+        imgPria.src = url; 
+        imgPria.style.display = 'block'; 
+        const fb = imgPria.nextElementSibling; 
+        if (fb && fb.classList.contains('img-fallback')) fb.style.display = 'none'; 
+      }
+    }
+    
+    if (previewId === 'fotoWanita' && url) {
+      const imgWanita = $('val-fotoWanita');
+      if (imgWanita) { 
+        imgWanita.src = url; 
+        imgWanita.style.display = 'block'; 
+        const fb = imgWanita.nextElementSibling; 
+        if (fb && fb.classList.contains('img-fallback')) fb.style.display = 'none'; 
+      }
+    }
+    
+    if (previewId === 'fotoSampul' && url) {
+      ['val-fotoSampul', 'val-fotoSampul2', 'val-fotoSampul3'].forEach(id => { 
+        const el = $(id); 
+        if (el) el.style.backgroundImage = `url('${url}')`; 
+      });
+    }
+    
+    if (previewId === 'story1Img' && url) { 
+      const img = $('val-story1-img'); 
+      if (img) { img.src = url; img.style.display = 'block'; } 
+    }
+    
+    if (previewId === 'story2Img' && url) { 
+      const img = $('val-story2-img'); 
+      if (img) { img.src = url; img.style.display = 'block'; } 
+    }
+    
+    if (previewId.indexOf('galeri') === 0 && url) {
+      if (appData) appData[previewId] = url;
+      galleryImages = [];
+      for (let i = 1; i <= currentGalleryCount; i++) {
+        const gUrl = (appData && appData['galeri' + i]) ? appData['galeri' + i] : '';
+        if (gUrl) galleryImages.push(gUrl);
+      }
+      renderGallery();
+    }
+    
+    if (decorFields.indexOf(previewId) !== -1 && url) {
+      if (appData) appData[previewId] = url;
+      
+      if (previewId === 'backgroundImg') {
+        document.querySelectorAll('.box-container').forEach(el => { 
+          el.style.backgroundImage = `url('${url}')`; 
+        });
+      } else if (previewId === 'borderFrame') {
+        ['border-frame-awal', 'border-frame-home', 'border-frame-footer'].forEach(id => { 
+          const el = $(id); 
+          if (el) el.src = url; 
+        });
+      } else {
+        const elId = decorMapping[previewId];
+        if (elId) { 
+          const el = $(elId); 
+          if (el) el.src = url; 
+        }
+      }
+    }
+    
+    if (previewId === 'musicUrl' && url) {
+      const audio = $('bg-music');
+      if (audio) { 
+        audio.src = url; 
+        audio.load(); 
+      }
+    }
+    
+    if (previewId.indexOf('banklogo-') === 0 && url) {
+      const bankId = previewId.replace('banklogo-', '');
+      const previewWrap = $('preview-banklogo-' + bankId);
+      
+      if (previewWrap) {
+        previewWrap.innerHTML = '';
+        const newImg = document.createElement('img');
+        newImg.id = 'bank-logo-img-' + bankId;
+        newImg.src = url; 
+        newImg.alt = 'logo';
+        previewWrap.appendChild(newImg);
+      }
+      
+      if (appData && appData.banks) {
+        const bank = appData.banks.find(b => b.id === bankId);
+        if (bank) bank.logo = url;
+      }
+    }
+  }
+
+  function refreshAllPreviews(data) {
+    ['fotoSampul', 'fotoPria', 'fotoWanita', 'story1Img', 'story2Img'].forEach(f => {
+      updatePreview(f, data[f] || '');
+    });
+    
+    for (let i = 1; i <= currentGalleryCount; i++) {
+      updatePreview('galeri' + i, data['galeri' + i] || '');
+    }
+    
+    decorFields.forEach(f => {
+      updatePreview(f, data[f] || '');
+    });
+    
+    updatePreview('musicUrl', data.musicUrl || '');
+  }
+
+  // ✅ GUEST LINK GENERATOR
+  window.generateGuestLink = function() {
+    const nameInput = $('guest-name-input');
+    const name = nameInput.value.trim();
+    
+    if (!name) { 
+      showToast('❌ Masukkan nama tamu', 'error'); 
+      return; 
+    }
+    
+    const encodedName = encodeURIComponent(name).replace(/%20/g, '+');
+    const baseUrl = window.location.origin + window.location.pathname;
+    const fullLink = baseUrl + '?kpd=' + encodedName;
+    
+    $('generated-link-output').value = fullLink;
+    $('generated-link-box').classList.remove('hidden');
+    
+    let history = JSON.parse(localStorage.getItem('guestLinkHistory') || '[]');
+    history.unshift({ name, link: fullLink, date: new Date().toLocaleString('id-ID') });
+    if (history.length > 50) history = history.slice(0, 50);
+    localStorage.setItem('guestLinkHistory', JSON.stringify(history));
+    
+    renderGuestHistory();
+    nameInput.value = '';
+    showToast('✅ Link berhasil dibuat!', 'success');
+  };
+
+  window.copyGeneratedLink = function() {
+    const link = $('generated-link-output').value;
+    navigator.clipboard.writeText(link)
+      .then(() => showToast('✅ Link disalin ke clipboard!', 'success'))
+      .catch(() => showToast('❌ Gagal menyalin', 'error'));
+  };
+
+  window.shareViaWhatsApp = function() {
+    const link = $('generated-link-output').value;
+    const message = `Assalamu'alaikum,\nKami mengundang Anda untuk hadir di acara pernikahan kami.\nSilakan klik link berikut untuk membuka undangan:\n${link}\nMerupakan suatu kehormatan apabila Anda berkenan hadir.\nWassalamu'alaikum Wr. Wb.`;
+    const waUrl = 'https://wa.me/?text=' + encodeURIComponent(message);
+    window.open(waUrl, '_blank');
+  };
+
+  function renderGuestHistory() {
+    const container = $('guest-link-history');
+    if (!container) return;
+    
+    const history = JSON.parse(localStorage.getItem('guestLinkHistory') || '[]');
+    
+    if (!history.length) {
+      container.innerHTML = '<p class="text-xs text-gray-400 italic text-center py-2">Belum ada link yang dibuat</p>';
+      return;
+    }
+    
+    container.innerHTML = history.map((item, i) => `
+      <div class="bg-white border border-gray-200 rounded-lg p-2 flex items-center gap-2 hover:border-gold-pale transition">
+        <div class="flex-1 min-w-0">
+          <p class="text-xs font-semibold text-gray-800 truncate">${escapeHtml(item.name)}</p>
+          <p class="text-[10px] text-gray-400 truncate font-mono">${escapeHtml(item.link)}</p>
+        </div>
+        <button onclick="copyLinkFromHistory(${i})" class="text-gold hover:text-gold-mid transition p-1" title="Salin">
+          <i class="fa-regular fa-copy text-sm"></i>
+        </button>
+      </div>
+    `).join('');
+  }
+
+  window.copyLinkFromHistory = function(index) {
+    const history = JSON.parse(localStorage.getItem('guestLinkHistory') || '[]');
+    if (history[index]) {
+      navigator.clipboard.writeText(history[index].link)
+        .then(() => showToast(`✅ Link untuk ${history[index].name} disalin!`, 'success'));
+    }
+  };
+
+  window.clearGuestHistory = function() {
+    if (confirm('Hapus semua riwayat link tamu?')) {
+      localStorage.removeItem('guestLinkHistory');
+      renderGuestHistory();
+      showToast('ℹ️ Riwayat dihapus', 'info');
+    }
+  };
+
   // ==========================================
-  // ✅ LOGIKA TAMPILAN TAMU (SISANYA)
+  // ✅ LOGIKA TAMPILAN TAMU
   // ==========================================
   function applyDataToHTML(data) {
     appData = data;
+    
     $$('.val-pria-nick').forEach(el => el.textContent = data.priaNick);
     $$('.val-wanita-nick').forEach(el => el.textContent = data.wanitaNick);
+    
     if ($('val-pria-full')) $('val-pria-full').textContent = data.priaFull;
     if ($('val-wanita-full')) $('val-wanita-full').textContent = data.wanitaFull;
     if ($('val-pria-ortu')) $('val-pria-ortu').textContent = data.priaOrtu;
     if ($('val-wanita-ortu')) $('val-wanita-ortu').textContent = data.wanitaOrtu;
     
-    ['val-fotoSampul', 'val-fotoSampul2', 'val-fotoSampul3'].forEach(id => { const el = $(id); if (el && data.fotoSampul) el.style.backgroundImage = `url('${data.fotoSampul}')`; });
-    if ($('val-fotoPria')) { $('val-fotoPria').src = data.fotoPria || ''; if (data.fotoPria) $('val-fotoPria').style.display = 'block'; }
-    if ($('val-fotoWanita')) { $('val-fotoWanita').src = data.fotoWanita || ''; if (data.fotoWanita) $('val-fotoWanita').style.display = 'block'; }
+    if ($('val-pria-ig')) $('val-pria-ig').textContent = data.priaIg;
+    if ($('val-wanita-ig')) $('val-wanita-ig').textContent = data.wanitaIg;
+    if ($('val-pria-ig-link')) $('val-pria-ig-link').href = 'https://instagram.com/' + data.priaIg;
+    if ($('val-wanita-ig-link')) $('val-wanita-ig-link').href = 'https://instagram.com/' + data.wanitaIg;
     
-    const audio = $('bg-music'); if (data.musicUrl && audio.src !== data.musicUrl) { audio.src = data.musicUrl; audio.load(); }
+    ['val-fotoSampul', 'val-fotoSampul2', 'val-fotoSampul3'].forEach(id => { 
+      const el = $(id); 
+      if (el && data.fotoSampul) el.style.backgroundImage = `url('${data.fotoSampul}')`; 
+    });
+    
+    if ($('val-fotoPria')) { 
+      $('val-fotoPria').src = data.fotoPria || ''; 
+      if (data.fotoPria) {
+        $('val-fotoPria').style.display = 'block';
+        const fb = $('val-fotoPria').nextElementSibling;
+        if (fb && fb.classList.contains('img-fallback')) fb.style.display = 'none';
+      }
+    }
+    
+    if ($('val-fotoWanita')) { 
+      $('val-fotoWanita').src = data.fotoWanita || ''; 
+      if (data.fotoWanita) {
+        $('val-fotoWanita').style.display = 'block';
+        const fb = $('val-fotoWanita').nextElementSibling;
+        if (fb && fb.classList.contains('img-fallback')) fb.style.display = 'none';
+      }
+    }
+    
+    const audio = $('bg-music');
+    if (data.musicUrl && audio.src !== data.musicUrl) { 
+      audio.src = data.musicUrl; 
+      audio.load(); 
+    }
     
     if ($('val-story1-title')) $('val-story1-title').textContent = data.story1Title || '';
     if ($('val-story1-desc')) $('val-story1-desc').textContent = data.story1Desc || '';
+    if ($('val-story1-img')) { 
+      $('val-story1-img').src = data.story1Img || ''; 
+      if (data.story1Img) $('val-story1-img').style.display = 'block'; 
+    }
+    
     if ($('val-story2-title')) $('val-story2-title').textContent = data.story2Title || '';
     if ($('val-story2-desc')) $('val-story2-desc').textContent = data.story2Desc || '';
+    if ($('val-story2-img')) { 
+      $('val-story2-img').src = data.story2Img || ''; 
+      if (data.story2Img) $('val-story2-img').style.display = 'block'; 
+    }
     
     if ($('val-akad-date')) $('val-akad-date').textContent = data.akadDate || '';
     if ($('val-akad-time')) $('val-akad-time').textContent = data.akadTime || '';
     if ($('val-akad-lokasi')) $('val-akad-lokasi').textContent = data.akadLokasi || '';
+    if ($('val-akad-map')) $('val-akad-map').href = data.akadMapUrl || '#';
+    
     if ($('val-resepsi-date')) $('val-resepsi-date').textContent = data.resepsiDate || '';
     if ($('val-resepsi-time')) $('val-resepsi-time').textContent = data.resepsiTime || '';
     if ($('val-resepsi-lokasi')) $('val-resepsi-lokasi').textContent = data.resepsiLokasi || '';
+    if ($('val-resepsi-map')) $('val-resepsi-map').href = data.resepsiMapUrl || '#';
     
-    if (data.backgroundImg) document.querySelectorAll('.box-container').forEach(el => el.style.backgroundImage = `url('${data.backgroundImg}')`);
+    if ($('val-dinner-date')) $('val-dinner-date').textContent = data.dinnerDate || '';
+    if ($('val-dinner-time')) $('val-dinner-time').textContent = data.dinnerTime || '';
+    if ($('val-dinner-lokasi')) $('val-dinner-lokasi').textContent = data.dinnerLokasi || '';
+    if ($('val-dinner-map')) $('val-dinner-map').href = data.dinnerMapUrl || '#';
+    
+    if ($('val-map-iframe')) $('val-map-iframe').src = data.mapIframeUrl || '';
+    
+    const showVideo = data.showVideo !== false;
+    const videoWrapper = $('video-section-wrapper');
+    if (videoWrapper) videoWrapper.style.display = showVideo ? 'block' : 'none';
+    if ($('val-videoYoutubeUrl')) $('val-videoYoutubeUrl').src = data.videoYoutubeUrl || '';
+    
+    if (data.backgroundImg) {
+      document.querySelectorAll('.box-container').forEach(el => { 
+        el.style.backgroundImage = `url('${data.backgroundImg}')`; 
+      });
+    }
+    
+    if (data.borderFrame) {
+      ['border-frame-awal', 'border-frame-home', 'border-frame-footer'].forEach(id => { 
+        const el = $(id); 
+        if (el) el.src = data.borderFrame; 
+      });
+    }
+    
+    Object.keys(decorMapping).forEach(field => {
+      if (data[field]) {
+        const elId = decorMapping[field];
+        const el = $(elId);
+        if (el) el.src = data[field];
+      }
+    });
     
     galleryImages = [];
-    for (let i = 1; i <= currentGalleryCount; i++) { const url = data['galeri' + i] || ''; if (url) galleryImages.push(url); }
+    for (let i = 1; i <= currentGalleryCount; i++) { 
+      const url = data['galeri' + i] || ''; 
+      if (url) galleryImages.push(url); 
+    }
     renderGallery();
+    
     renderBankList();
-    rsvpList = data.bukuTamu || []; renderRsvpList();
+    
+    rsvpList = data.bukuTamu || [];
+    renderRsvpList();
+    
     document.title = 'Undangan ' + (data.priaNick || '') + ' & ' + (data.wanitaNick || '');
     startCountdown(normalizeDateString(data.countdownTarget));
+    
     if (data.chapters) applyChapterVisibility(data.chapters);
   }
 
   function renderGallery() {
-    const grid = $('gallery-grid'); if (!grid) return; grid.innerHTML = '';
+    const grid = $('gallery-grid'); 
+    if (!grid) return; 
+    grid.innerHTML = '';
+    
     galleryImages.forEach((src, i) => {
-      const img = document.createElement('img'); img.src = src; img.className = 'gallery-item'; img.setAttribute('loading', 'lazy');
-      img.onclick = () => openLightbox(i); img.onerror = function() { this.style.display = 'none'; };
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = 'Gallery ' + (i + 1);
+      img.className = 'gallery-item';
+      img.setAttribute('loading', 'lazy');
+      img.setAttribute('data-aos', 'reveal-up');
+      img.setAttribute('data-aos-delay', String((i % 3) * 120));
+      img.onclick = () => openLightbox(i);
+      img.onerror = function() { this.style.display = 'none'; };
       grid.appendChild(img);
     });
+    
+    if (galleryImages.length > 0) AOS.refresh();
   }
 
-  function openLightbox(index) { currentLightboxIndex = index; $('lightbox-img').src = galleryImages[currentLightboxIndex]; $('lightbox').classList.add('active'); document.body.style.overflow = 'hidden'; }
-  window.closeLightbox = function() { $('lightbox').classList.remove('active'); document.body.style.overflow = ''; };
-  window.navLightbox = function(dir) { currentLightboxIndex = (currentLightboxIndex + dir + galleryImages.length) % galleryImages.length; $('lightbox-img').src = galleryImages[currentLightboxIndex]; };
+  function openLightbox(index) { 
+    if (!galleryImages.length) return; 
+    currentLightboxIndex = index; 
+    updateLightbox(); 
+    $('lightbox').classList.add('active'); 
+    document.body.style.overflow = 'hidden'; 
+  }
+  
+  function closeLightbox() { 
+    $('lightbox').classList.remove('active'); 
+    document.body.style.overflow = ''; 
+  }
+  
+  function navLightbox(dir) { 
+    currentLightboxIndex = (currentLightboxIndex + dir + galleryImages.length) % galleryImages.length; 
+    updateLightbox(); 
+  }
+  
+  function updateLightbox() { 
+    $('lightbox-img').src = galleryImages[currentLightboxIndex]; 
+    $('lb-counter').textContent = (currentLightboxIndex + 1) + ' / ' + galleryImages.length; 
+  }
+
+  window.closeLightbox = closeLightbox;
+  window.navLightbox = navLightbox;
+
+  (function() {
+    const lb = $('lightbox'); 
+    if (!lb) return;
+    
+    lb.addEventListener('click', e => {
+      if (e.target.closest('[data-lb-close]')) { closeLightbox(); return; }
+      if (e.target.closest('[data-lb-prev]')) { navLightbox(-1); return; }
+      if (e.target.closest('[data-lb-next]')) { navLightbox(1); return; }
+      if (e.target === lb || e.target.id === 'lb-counter') { closeLightbox(); return; }
+    });
+  })();
+
+  document.addEventListener('keydown', e => {
+    if (!$('lightbox').classList.contains('active')) return;
+    if (e.key === 'Escape') closeLightbox();
+    if (e.key === 'ArrowLeft') navLightbox(-1);
+    if (e.key === 'ArrowRight') navLightbox(1);
+  });
 
   function renderBankList() {
-    const container = $('bank-list-container'); if (!container) return;
-    const banks = (appData && appData.banks) ? appData.banks.filter(b => b.visible !== false) : [];
-    container.innerHTML = banks.map(bank => `<div class="bank-card flex items-center justify-between"><div class="text-left"><h4 class="font-bold text-gray-800 text-sm">${escapeHtml(bank.name)}</h4><p class="text-lg font-mono text-gray-700 my-1">${escapeHtml(bank.rek)}</p><p class="text-xs text-gray-400">a.n. ${escapeHtml(bank.an)}</p></div><button onclick="copyRek('${escapeHtml(bank.rek)}', this)" class="bg-gold text-white px-4 py-2 rounded-xl text-xs">Salin</button></div>`).join('');
+    const container = $('bank-list-container');
+    const emptyMsg = $('bank-empty-msg');
+    
+    if (!container) return;
+    
+    const banks = (appData && appData.banks) ? appData.banks : [];
+    const visibleBanks = banks.filter(b => b.visible !== false);
+    
+    if (!visibleBanks.length) { 
+      container.innerHTML = ''; 
+      if (emptyMsg) emptyMsg.classList.remove('hidden'); 
+      return; 
+    }
+    
+    if (emptyMsg) emptyMsg.classList.add('hidden');
+    
+    container.innerHTML = visibleBanks.map((bank, idx) => {
+      let logoHtml = '';
+      if (bank.logo) {
+        logoHtml = `<div class="bank-logo-wrap"><img src="${escapeHtml(bank.logo)}" alt="${escapeHtml(bank.name)}" onerror="this.style.display='none';this.parentElement.innerHTML='<div class=\\'bank-logo-fallback\\'>🏦</div>';"></div>`;
+      } else {
+        logoHtml = '<div class="bank-logo-wrap"><div class="bank-logo-fallback">🏦</div></div>';
+      }
+      
+      return `
+        <div class="bank-card flex items-center justify-between" data-aos="reveal-${idx % 2 === 0 ? 'left' : 'right'}" data-aos-delay="${150 + idx * 100}">
+          <div class="flex items-center flex-1 min-w-0">
+            ${logoHtml}
+            <div class="text-left flex-1 min-w-0">
+              <h4 class="font-bold text-gray-800 text-sm">${escapeHtml(bank.name || 'Bank')}</h4>
+              <p class="text-lg font-mono text-gray-700 my-1 tracking-wider">${escapeHtml(bank.rek || '')}</p>
+              <p class="text-xs text-gray-400">a.n. <span>${escapeHtml(bank.an || '')}</span></p>
+            </div>
+          </div>
+          <button onclick="copyRek('${escapeHtml(bank.rek || '')}', this)" class="bg-gold-ghost text-gold px-4 py-2.5 rounded-xl text-xs hover:bg-gold hover:text-white transition font-semibold whitespace-nowrap">
+            <i class="fa-regular fa-copy mr-1"></i> Salin
+          </button>
+        </div>
+      `;
+    }).join('');
   }
 
   window.copyRek = function(text, btn) {
-    navigator.clipboard.writeText(text).then(() => { btn.innerHTML = 'Tersalin'; showToast('Nomor rekening disalin', 'success'); setTimeout(() => btn.innerHTML = 'Salin', 2000); });
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+      const orig = btn.innerHTML;
+      btn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Tersalin';
+      btn.classList.add('!bg-green-100', '!text-green-600');
+      showToast('✅ Nomor rekening disalin', 'success');
+      setTimeout(() => {
+        btn.innerHTML = orig;
+        btn.classList.remove('!bg-green-100', '!text-green-600');
+      }, 2000);
+    }).catch(() => showToast('❌ Gagal menyalin', 'error'));
   };
 
   function startCountdown(target) {
-    if (countdownInterval) clearInterval(countdownInterval); if (!target) return;
-    const targetDate = new Date(target + 'T00:00:00'); if (isNaN(targetDate.getTime())) return;
+    if (countdownInterval) clearInterval(countdownInterval);
+    if (!target) return;
+    
+    const targetDate = new Date(target + 'T00:00:00');
+    if (isNaN(targetDate.getTime())) return;
+    
     function update() {
       const diff = targetDate.getTime() - Date.now();
-      if (diff <= 0) { $('cd-days').textContent = '0'; $('cd-hours').textContent = '0'; $('cd-mins').textContent = '0'; $('cd-secs').textContent = '0'; clearInterval(countdownInterval); return; }
+      if (diff <= 0) {
+        $('cd-days').textContent = '0';
+        $('cd-hours').textContent = '0';
+        $('cd-mins').textContent = '0';
+        $('cd-secs').textContent = '0';
+        clearInterval(countdownInterval);
+        return;
+      }
+      
       $('cd-days').textContent = Math.floor(diff / 86400000);
       $('cd-hours').textContent = String(Math.floor((diff % 86400000) / 3600000)).padStart(2, '0');
       $('cd-mins').textContent = String(Math.floor((diff % 3600000) / 60000)).padStart(2, '0');
       $('cd-secs').textContent = String(Math.floor((diff % 60000) / 1000)).padStart(2, '0');
     }
-    update(); countdownInterval = setInterval(update, 1000);
+    
+    update();
+    countdownInterval = setInterval(update, 1000);
   }
 
   window.bukaUndangan = function() {
-    $('awal').classList.add('opened'); $('main-content').classList.remove('hidden'); $('bottom-nav').classList.remove('hidden'); $('audio-toggle').classList.remove('hidden');
-    const audio = $('bg-music'); audio.volume = 0.35;
-    if (appData && appData.musicUrl) { audio.src = appData.musicUrl; audio.load(); }
-    audio.play().then(() => { isMusicPlaying = true; $('audio-toggle').classList.add('playing'); }).catch(err => console.warn('Autoplay gagal:', err));
+    $('awal').classList.add('opened');
+    $('main-content').classList.remove('hidden');
+    $('bottom-nav').classList.remove('hidden');
+    $('audio-toggle').classList.remove('hidden');
+    
+    const audio = $('bg-music');
+    audio.volume = 0.35;
+    
+    if (!audio.src || audio.src === location.href) {
+      if (appData && appData.musicUrl) {
+        audio.src = appData.musicUrl;
+        audio.load();
+      }
+    }
+    
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise.then(() => {
+        isMusicPlaying = true;
+        $('audio-toggle').classList.add('playing');
+        $('audio-toggle').innerHTML = '<i class="fa-solid fa-music text-sm"></i>';
+      }).catch(err => {
+        console.warn('Autoplay gagal:', err);
+        isMusicPlaying = false;
+        $('audio-toggle').innerHTML = '<i class="fa-solid fa-volume-xmark text-sm"></i>';
+      });
+    }
+    
     setTimeout(() => $('bottom-nav').classList.add('visible'), 800);
-    window.scrollTo({ top: 0, behavior: 'smooth' }); setTimeout(initAllAnimations, 300);
+    spawnPetals();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setTimeout(initAllAnimations, 300);
   };
 
-  window.toggleAudio = function() {
-    const audio = $('bg-music'), btn = $('audio-toggle');
-    if (isMusicPlaying) { audio.pause(); isMusicPlaying = false; btn.classList.remove('playing'); btn.innerHTML = '<i class="fa-solid fa-volume-xmark text-sm"></i>'; }
-    else { audio.play().then(() => { isMusicPlaying = true; btn.classList.add('playing'); btn.innerHTML = '<i class="fa-solid fa-music text-sm"></i>'; }); }
-  };
-
-  window.toggleJumlah = function(val) { if (val === 'Hadir') $('jumlah-wrapper').classList.remove('hidden'); else $('jumlah-wrapper').classList.add('hidden'); };
-
-  window.submitRSVP = async function(e) {
-    e.preventDefault();
-    const btn = $('btn-submit-rsvp'); btn.disabled = true; btn.innerHTML = 'Mengirim...';
-    const payload = { action: "rsvp", nama: $('rsvp-name').value.trim(), kehadiran: $('rsvp-status').value, jumlah: $('rsvp-jumlah').value || '1', ucapan: $('rsvp-message').value.trim() };
-    const localItem = { ...payload, tanggal: new Date().toLocaleString('id-ID') };
-    try {
-      const res = await fetch(GOOGLE_API_URL, { method: 'POST', body: JSON.stringify(payload) });
-      const result = await res.json();
-      if (result.status === 'success') { rsvpList.unshift(localItem); renderRsvpList(); showToast('Ucapan terkirim!', 'success'); }
-    } catch (err) { rsvpList.unshift(localItem); renderRsvpList(); showToast('Tersimpan lokal', 'info'); }
-    $('rsvp-message').value = ''; $('rsvp-status').value = ''; btn.disabled = false; btn.innerHTML = 'Kirim Ucapan';
-  };
-
-  function renderRsvpList() {
-    const container = $('rsvp-list-container'); if (!container) return;
-    $('rsvp-count').textContent = 'Ucapan Tamu (' + rsvpList.length + ')';
-    container.innerHTML = rsvpList.map(item => `<div class="bg-gray-50 rounded-xl p-4 border border-gray-100"><div class="font-semibold text-sm text-gray-800">${escapeHtml(item.nama)}</div><p class="text-sm text-gray-600 mt-1">${escapeHtml(item.ucapan)}</p></div>`).join('');
-  }
-
-  function applyChapterVisibility(chapters) {
-    const map = { 'home': ['home'], 'chapter02': ['couple'], 'chapter03': ['story'], 'chapter04': ['event'], 'chapter05': ['gift'], 'chapter06': ['rsvp'], 'chapter07': ['gallery'] };
-    for (const id in chapters) {
-      const secs = map[id] || [];
-      secs.forEach(s => { const el = document.getElementById(s); if (el) el.style.display = chapters[id].active === false ? 'none' : ''; });
+  function spawnPetals() {
+    const colors = ['#cba657', '#e8d5a3', '#ae814c', '#f5eed8', '#d4a843'];
+    for (let i = 0; i < 20; i++) {
+      const p = document.createElement('div');
+      p.className = 'petal';
+      p.style.left = Math.random() * 100 + 'vw';
+      p.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+      p.style.width = (8 + Math.random() * 10) + 'px';
+      p.style.height = (8 + Math.random() * 10) + 'px';
+      p.style.animation = `petal-fall ${3 + Math.random() * 4}s linear ${Math.random() * 2}s forwards`;
+      document.body.appendChild(p);
+      (el => setTimeout(() => el.remove(), 8000))(p);
     }
   }
 
-  function initScrollNav() {
-    const nav = $('bottom-nav'); if(!nav) return;
-    const sections = ['home', 'couple', 'story', 'event', 'gallery', 'rsvp'];
-    nav.querySelectorAll('a').forEach(link => {
-      link.addEventListener('click', e => { e.preventDefault(); const el = document.getElementById(link.getAttribute('href').substring(1)); if (el) smoothScrollTo(el.getBoundingClientRect().top + window.pageYOffset - 20, 900); });
+  window.toggleAudio = function() {
+    const audio = $('bg-music');
+    const btn = $('audio-toggle');
+    
+    if (isMusicPlaying) {
+      audio.pause();
+      isMusicPlaying = false;
+      btn.classList.remove('playing');
+      btn.innerHTML = '<i class="fa-solid fa-volume-xmark text-sm"></i>';
+    } else {
+      if (!audio.src || audio.src === location.href) {
+        if (appData && appData.musicUrl) {
+          audio.src = appData.musicUrl;
+          audio.load();
+        } else return;
+      }
+      
+      audio.play()
+        .then(() => {
+          isMusicPlaying = true;
+          btn.classList.add('playing');
+          btn.innerHTML = '<i class="fa-solid fa-music text-sm"></i>';
+        })
+        .catch(() => btn.innerHTML = '<i class="fa-solid fa-volume-xmark text-sm"></i>');
+    }
+  };
+
+  window.toggleJumlah = function(val) {
+    if (val === 'Hadir') {
+      $('jumlah-wrapper').classList.remove('hidden');
+    } else {
+      $('jumlah-wrapper').classList.add('hidden');
+      $('rsvp-jumlah').value = '1';
+    }
+  };
+
+  window.submitRSVP = async function(e) {
+    e.preventDefault();
+    const btn = $('btn-submit-rsvp');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengirim...';
+    
+    const status = $('rsvp-status').value;
+    const jumlah = (status === 'Hadir') ? ($('rsvp-jumlah').value || '1') : '0';
+    
+    const payload = {
+      action: "rsvp",
+      nama: $('rsvp-name').value.trim(),
+      kehadiran: status,
+      jumlah: jumlah,
+      ucapan: $('rsvp-message').value.trim()
+    };
+    
+    const localItem = {
+      nama: payload.nama,
+      kehadiran: payload.kehadiran,
+      jumlah: payload.jumlah,
+      ucapan: payload.ucapan,
+      tanggal: new Date().toLocaleString('id-ID')
+    };
+    
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+      const res = await fetch(GOOGLE_API_URL, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      const result = await res.json();
+      
+      if (result.status === 'success') {
+        rsvpList.unshift(localItem);
+        renderRsvpList();
+        showToast('✅ Ucapan terkirim!', 'success');
+      } else {
+        throw new Error(result.message || 'Gagal');
+      }
+    } catch (err) {
+      console.warn('Gagal kirim ke cloud:', err);
+      rsvpList.unshift(localItem);
+      renderRsvpList();
+      showToast('⚠️ Tersimpan lokal (offline)', 'info');
+    }
+    
+    $('rsvp-message').value = '';
+    $('rsvp-status').value = '';
+    $('rsvp-jumlah').value = '1';
+    $('jumlah-wrapper').classList.add('hidden');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Kirim Ucapan';
+  };
+
+  function renderRsvpList() {
+    const container = $('rsvp-list-container');
+    const countEl = $('rsvp-count');
+    
+    if (!container) return;
+    
+    countEl.textContent = 'Ucapan Tamu (' + rsvpList.length + ')';
+    
+    if (!rsvpList.length) {
+      container.innerHTML = '<p class="text-sm text-gray-400 italic text-center py-4">Belum ada ucapan. Jadilah yang pertama!</p>';
+      return;
+    }
+    
+    container.innerHTML = rsvpList.map((item, i) => {
+      const nama = item.nama || item.name || '?';
+      const kehadiran = item.kehadiran || item.status || '-';
+      const ucapan = item.ucapan || item.message || '';
+      const tanggal = item.tanggal || item.time || '';
+      
+      return `
+        <div class="bg-gray-50 rounded-xl p-4 border border-gray-100" style="${i === 0 ? 'animation:fadeSlideIn 0.4s ease' : ''}">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 rounded-full bg-gold text-white flex items-center justify-center text-xs font-bold">${escapeHtml(nama[0].toUpperCase())}</div>
+              <span class="font-semibold text-sm text-gray-800">${escapeHtml(nama)}</span>
+            </div>
+            <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold ${kehadiran === 'Hadir' ? 'bg-green-100 text-green-600' : 'bg-gray-200 text-gray-500'}">${escapeHtml(kehadiran)}</span>
+          </div>
+          <p class="text-sm text-gray-600 leading-relaxed pl-10">${escapeHtml(ucapan)}</p>
+          ${tanggal ? `<p class="text-[10px] text-gray-400 pl-10 mt-1.5">${escapeHtml(tanggal)}</p>` : ''}
+        </div>
+      `;
+    }).join('');
+  }
+
+  function applyChapterVisibility(chapters) {
+    if (!chapters) return;
+    
+    const chapterMap = {
+      'home': ['home'],
+      'chapter01': [],
+      'chapter02': ['couple'],
+      'chapter03': ['story'],
+      'chapter04': ['event'],
+      'chapter05': ['gift'],
+      'chapter06': ['rsvp'],
+      'chapter07': ['gallery'],
+      'footer': []
+    };
+    
+    for (const chapterId in chapters) {
+      const chapter = chapters[chapterId];
+      const sections = chapterMap[chapterId] || [];
+      
+      sections.forEach(sectionId => {
+        const section = document.getElementById(sectionId);
+        if (section) {
+          section.style.display = chapter.active === false ? 'none' : '';
+        }
+      });
+    }
+    
+    const dividers = document.querySelectorAll('.section-divider');
+    dividers.forEach(divider => {
+      const prevSection = divider.previousElementSibling;
+      const nextSection = divider.nextElementSibling;
+      
+      if (prevSection && nextSection) {
+        if (prevSection.style.display === 'none' || nextSection.style.display === 'none') {
+          divider.style.display = 'none';
+        } else {
+          divider.style.display = '';
+        }
+      }
     });
   }
+
+  function initScrollNav() {
+    const nav = $('bottom-nav');
+    if (!nav) return;
+    
+    const sections = ['home', 'couple', 'story', 'event', 'gallery', 'rsvp'];
+    const links = nav.querySelectorAll('a');
+    
+    links.forEach(link => {
+      link.addEventListener('click', e => {
+        e.preventDefault();
+        const targetId = link.getAttribute('href').substring(1);
+        const targetEl = document.getElementById(targetId);
+        
+        if (targetEl) {
+          const targetY = targetEl.getBoundingClientRect().top + window.pageYOffset - 20;
+          smoothScrollTo(targetY, 900);
+        }
+      });
+    });
+    
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 300 && !nav.classList.contains('visible')) nav.classList.add('visible');
+      
+      let current = sections[0];
+      for (let j = 0; j < sections.length; j++) {
+        const el = document.getElementById(sections[j]);
+        if (el && el.getBoundingClientRect().top <= 200) current = sections[j];
+      }
+      
+      links.forEach(a => a.classList.toggle('active', a.getAttribute('data-section') === current));
+    }, { passive: true });
+  }
+
+  window.installPWA = function() {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(choiceResult => {
+        if (choiceResult.outcome === 'accepted') {
+          showToast('✅ Aplikasi berhasil diinstall!', 'success');
+        }
+        deferredPrompt = null;
+        $('pwa-install-btn').classList.remove('show');
+      });
+    } else {
+      showToast('ℹ️ Buka di Chrome/Edge untuk install', 'info');
+    }
+  };
+
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+    $('pwa-install-btn').classList.add('show');
+  });
 
   // === INIT ===
   async function init() {
     startLoaderTyping();
+    
     const urlParams = new URLSearchParams(window.location.search);
     const guestName = urlParams.get('kpd') || "Bapak/Ibu/Saudara/i";
     if ($('nama-tamu')) $('nama-tamu').innerText = guestName;
     if ($('rsvp-name') && guestName !== "Bapak/Ibu/Saudara/i") $('rsvp-name').value = guestName;
-
+    
+    try {
+      const savedCount = localStorage.getItem('gallerySlotCount');
+      if (savedCount) {
+        const parsed = parseInt(savedCount);
+        if (parsed >= 6 && parsed <= 20) currentGalleryCount = parsed;
+      }
+    } catch (e) {}
+    
+    buildGalleryUrlFields();
+    
     let data = await window.fetchCloudData();
-    if (!data || Object.keys(data).length < 2) {
-      try { const l = localStorage.getItem('undanganData_v2'); if (l) data = JSON.parse(l); } catch(e) {}
+    
+    if (data && Object.keys(data).length > 2) {
+      const merged = JSON.parse(JSON.stringify(defaultData));
+      for (const key in data) {
+        if (key !== 'bukuTamu' && key !== 'banks' && key !== 'chapters') merged[key] = data[key];
+      }
+      if (data.banks && Array.isArray(data.banks)) merged.banks = data.banks;
+      merged.bukuTamu = data.bukuTamu || [];
+      if (data.showVideo !== undefined) merged.showVideo = data.showVideo;
+      if (data.chapters) merged.chapters = data.chapters;
+      data = merged;
+      dataSource = 'cloud';
+    } else {
+      try {
+        const localStr = localStorage.getItem('undanganData_v2');
+        if (localStr) {
+          data = JSON.parse(localStr);
+          dataSource = 'local';
+        } else {
+          data = null;
+        }
+      } catch (e) {
+        data = null;
+      }
     }
-    if (!data) data = JSON.parse(JSON.stringify(defaultData));
-
+    
+    if (!data) {
+      data = JSON.parse(JSON.stringify(defaultData));
+      dataSource = 'default';
+    }
+    
+    for (let i = 20; i >= 6; i--) {
+      if (data['galeri' + i]) {
+        currentGalleryCount = i;
+        try { localStorage.setItem('gallerySlotCount', String(currentGalleryCount)); } catch (e) {}
+        break;
+      }
+    }
+    
     applyDataToHTML(data);
+    
+    if (dataSource === 'cloud' || dataSource === 'default') {
+      try { localStorage.setItem('undanganData_v2', JSON.stringify(data)); } catch (e) {}
+    }
+    
     initScrollNav();
     window.addEventListener('scroll', onScroll, { passive: true });
     updateScrollProgress();
-
+    
     $('main-loader').classList.add('fade-out');
     $('awal').style.visibility = 'visible';
-    AOS.init({ duration: 1000, once: false, mirror: true, easing: 'ease-out-cubic', offset: 80 });
+    
+    AOS.init({
+      duration: 1000,
+      once: false,
+      mirror: true,
+      easing: 'ease-out-cubic',
+      offset: 80,
+      anchorPlacement: 'top-bottom'
+    });
+    
     AOS.refresh();
+    
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./js/sw.js')
+        .then(reg => console.log('[PWA] Service Worker registered'))
+        .catch(err => console.warn('[PWA] SW registration failed:', err));
+    }
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else init();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 })();
