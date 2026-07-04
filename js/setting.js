@@ -1,5 +1,6 @@
 /* ========================================
    SETTING.JS - Panel Admin Undangan
+   Versi Perbaikan Lengkap
    ======================================== */
 (function() {
   'use strict';
@@ -7,7 +8,7 @@
   // === KONFIGURASI ===
   const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbxHZX63O8l14Ksa91PIGhdkjIMsLoPodVdmV_3C9ZU0WkSEDmhaoV_lCQj4cm6R9d1g/exec";
   const GALLERY_COUNT = 6;
-  const FETCH_TIMEOUT = 15000;
+  const FETCH_TIMEOUT = 30000; // ✅ DIUBAH: 30 detik untuk Google Apps Script
 
   // === STATE ===
   let ADMIN_PIN = null;
@@ -21,6 +22,7 @@
   let pendingUploadType = 'image';
   let rsvpList = [];
   let galleryImages = [];
+  let isSaving = false; // ✅ STATE BARU: Mencegah double-save
 
   // === DEFAULT DATA ===
   const defaultData = {
@@ -111,6 +113,14 @@
       .replace(/'/g, '&#39;');
   };
 
+  // ✅ FUNGSI BARU: Get base URL dinamis
+  function getBaseUrl() {
+    const path = window.location.pathname;
+    const lastSlash = path.lastIndexOf('/');
+    const basePath = path.substring(0, lastSlash + 1);
+    return window.location.origin + basePath;
+  }
+
   // === TOAST ===
   function showToast(msg, type = 'info') {
     const c = $('toast-container');
@@ -120,7 +130,8 @@
     const icons = {
       success: 'fa-check-circle text-green-500',
       error: 'fa-exclamation-circle text-red-500',
-      info: 'fa-info-circle text-blue-500'
+      info: 'fa-info-circle text-blue-500',
+      warning: 'fa-triangle-exclamation text-yellow-500'
     };
     t.innerHTML = `<div class="flex items-center gap-3"><i class="fa-solid ${icons[type] || icons.info}"></i><span class="text-sm text-gray-700">${msg}</span></div>`;
     c.appendChild(t);
@@ -131,8 +142,46 @@
     }, 3000);
   }
 
+  // ✅ FUNGSI BARU: Confirmation Modal
+  function showConfirmModal(title, message, onConfirm) {
+    const modal = $('confirm-modal');
+    if (!modal) {
+      // Fallback ke confirm() jika modal tidak ada
+      if (confirm(message)) onConfirm();
+      return;
+    }
+    
+    $('confirm-title').textContent = title;
+    $('confirm-message').textContent = message;
+    
+    const actionBtn = $('confirm-action-btn');
+    actionBtn.onclick = function() {
+      closeConfirmModal();
+      onConfirm();
+    };
+    
+    modal.classList.add('active');
+  }
+
+  function closeConfirmModal() {
+    const modal = $('confirm-modal');
+    if (modal) modal.classList.remove('active');
+  }
+
+  // ✅ FUNGSI BARU: Loading State
+  function setLoading(btn, isLoading, originalText) {
+    if (!btn) return;
+    if (isLoading) {
+      btn.disabled = true;
+      btn.dataset.originalText = btn.innerHTML;
+      btn.innerHTML = '<span class="spinner"></span> Memproses...';
+    } else {
+      btn.disabled = false;
+      btn.innerHTML = originalText || btn.dataset.originalText || btn.innerHTML;
+    }
+  }
+
   // === FETCH CLOUD DATA ===
-  // ✅ Didefinisikan di window scope agar accessible global
   window.fetchCloudData = async function() {
     try {
       const controller = new AbortController();
@@ -180,6 +229,8 @@
         if (noImg) noImg.style.display = 'inline';
       }
     }
+    
+    // Update preview di halaman undangan (jika ada)
     if (previewId === 'fotoPria' && url) {
       const imgPria = $('val-fotoPria');
       if (imgPria) {
@@ -400,9 +451,17 @@
   window.removeBankSetting = function(id) {
     if (!appData || !appData.banks) return;
     if (appData.banks.length <= 1) { showToast('Minimal 1 rekening', 'error'); return; }
-    appData.banks = appData.banks.filter(b => b.id !== id);
-    renderBankSettings();
-    showToast('Rekening dihapus', 'info');
+    
+    // ✅ PERBAIKAN: Gunakan confirmation modal
+    showConfirmModal(
+      'Hapus Rekening',
+      'Apakah Anda yakin ingin menghapus rekening ini?',
+      function() {
+        appData.banks = appData.banks.filter(b => b.id !== id);
+        renderBankSettings();
+        showToast('Rekening dihapus', 'info');
+      }
+    );
   };
 
   function collectBankSettings() {
@@ -458,17 +517,23 @@
   }
 
   window.resetDecorToDefault = function() {
-    if (!confirm('Reset semua dekorasi ke default?')) return;
-    decorFields.forEach(f => {
-      if (defaultData[f]) {
-        const el = $('set-' + f);
-        if (el) el.value = defaultData[f];
-        if (appData) appData[f] = defaultData[f];
-        updatePreview(f, defaultData[f]);
+    // ✅ PERBAIKAN: Gunakan confirmation modal
+    showConfirmModal(
+      'Reset Dekorasi',
+      'Apakah Anda yakin ingin mereset semua dekorasi ke default?',
+      function() {
+        decorFields.forEach(f => {
+          if (defaultData[f]) {
+            const el = $('set-' + f);
+            if (el) el.value = defaultData[f];
+            if (appData) appData[f] = defaultData[f];
+            updatePreview(f, defaultData[f]);
+          }
+        });
+        buildDecorGrids(appData);
+        showToast('Dekorasi direset ke default', 'success');
       }
-    });
-    buildDecorGrids(appData);
-    showToast('Dekorasi direset ke default', 'success');
+    );
   };
 
   // === GALLERY SLOTS ===
@@ -579,11 +644,16 @@
   };
 
   window.resetChaptersToDefault = function() {
-    if (confirm('Reset semua chapter ke pengaturan default?')) {
-      currentChapters = JSON.parse(JSON.stringify(defaultData.chapters));
-      renderChaptersList();
-      showToast('Chapter direset ke default', 'success');
-    }
+    // ✅ PERBAIKAN: Gunakan confirmation modal
+    showConfirmModal(
+      'Reset Chapter',
+      'Apakah Anda yakin ingin mereset semua chapter ke pengaturan default?',
+      function() {
+        currentChapters = JSON.parse(JSON.stringify(defaultData.chapters));
+        renderChaptersList();
+        showToast('Chapter direset ke default', 'success');
+      }
+    );
   };
 
   // === POPULATE FORM ===
@@ -613,40 +683,76 @@
     renderGuestHistory();
   }
 
+  // === VALIDATION ===
+  // ✅ FUNGSI BARU: Validasi form
+  function validateSettings() {
+    const requiredFields = ['priaNick', 'priaFull', 'wanitaNick', 'wanitaFull', 'countdownTarget'];
+    for (const field of requiredFields) {
+      const el = $('set-' + field);
+      if (el && !el.value.trim()) {
+        showToast(`Field "${field}" wajib diisi`, 'error');
+        el.focus();
+        return false;
+      }
+    }
+    return true;
+  }
+
   // === SAVE SETTINGS ===
   window.saveSettings = function() {
+    // ✅ PERBAIKAN: Validasi sebelum save
+    if (!validateSettings()) return;
+    
+    // ✅ PERBAIKAN: Cegah double-save
+    if (isSaving) {
+      showToast('Sedang menyimpan, tunggu sebentar...', 'info');
+      return;
+    }
+    
+    isSaving = true;
     const btn = $('btn-save-settings') || $('btn-save-settings-2');
     const statusEl = $('save-status');
+    
     if (btn) {
       btn.disabled = true;
-      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Menyimpan...';
+      btn.innerHTML = '<span class="spinner"></span> Menyimpan...';
     }
+    
     const fields = ['priaNick', 'priaFull', 'priaOrtu', 'priaIg', 'wanitaNick', 'wanitaFull', 'wanitaOrtu', 'wanitaIg', 'fotoSampul', 'fotoPria', 'fotoWanita', 'countdownTarget', 'musicUrl', 'akadDate', 'akadTime', 'akadLokasi', 'akadMapUrl', 'resepsiDate', 'resepsiTime', 'resepsiLokasi', 'resepsiMapUrl', 'dinnerDate', 'dinnerTime', 'dinnerLokasi', 'dinnerMapUrl', 'mapIframeUrl', 'story1Title', 'story1Desc', 'story1Img', 'story2Title', 'story2Desc', 'story2Img', 'videoYoutubeUrl'];
     const payload = { action: "settings" };
     if (ADMIN_PIN) payload.adminPin = ADMIN_PIN;
+    
     fields.forEach(f => {
       const el = $('set-' + f);
       if (el && el.value) payload[f] = el.value;
     });
+    
     decorFields.forEach(f => {
       const el = $('set-' + f);
       if (el && el.value) payload[f] = el.value;
     });
+    
     for (let i = 1; i <= currentGalleryCount; i++) {
       const el = $('set-galeri' + i);
       if (el && el.value) payload['galeri' + i] = el.value;
     }
+    
     const showVideoEl = $('set-showVideo');
     payload.showVideo = showVideoEl ? showVideoEl.checked : true;
     payload.banks = collectBankSettings();
     payload.chapters = currentChapters;
+    
     const newData = Object.assign({}, appData, payload);
     newData.banks = payload.banks;
     newData.bukuTamu = rsvpList;
     newData.chapters = currentChapters;
+    
+    // ✅ PERBAIKAN: Simpan ke localStorage dulu
     try { localStorage.setItem('undanganData_v2', JSON.stringify(newData)); } catch (e) {}
+    
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+    
     fetch(GOOGLE_API_URL, {
       method: 'POST',
       body: JSON.stringify(payload),
@@ -657,8 +763,8 @@
         if (result.status === 'success') {
           dataSource = 'cloud';
           updateSyncBadge('cloud');
-          if (statusEl) statusEl.textContent = 'Tersinkron ke Cloud!';
-          showToast('Data tersimpan!', 'success');
+          if (statusEl) statusEl.textContent = '✅ Tersinkron ke Cloud!';
+          showToast('✅ Data tersimpan!', 'success');
         } else {
           throw new Error(result.message);
         }
@@ -666,10 +772,11 @@
       .catch(err => {
         dataSource = 'local';
         updateSyncBadge('local');
-        if (statusEl) statusEl.textContent = 'Tersimpan Lokal';
-        showToast('Lokal saja: ' + err.message, 'info');
+        if (statusEl) statusEl.textContent = '⚠️ Tersimpan Lokal';
+        showToast('⚠️ Lokal saja: ' + err.message, 'info');
       })
       .finally(() => {
+        isSaving = false;
         setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 3000);
         if (btn) {
           btn.disabled = false;
@@ -683,8 +790,9 @@
     const btn = $('btn-refresh-cloud') || $('btn-refresh-cloud-2');
     if (btn) {
       btn.disabled = true;
-      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengambil...';
+      btn.innerHTML = '<span class="spinner"></span> Mengambil...';
     }
+    
     window.fetchCloudData().then(cloudData => {
       if (cloudData) {
         const merged = JSON.parse(JSON.stringify(defaultData));
@@ -699,9 +807,9 @@
         try { localStorage.setItem('undanganData_v2', JSON.stringify(merged)); } catch (e) {}
         dataSource = 'cloud';
         updateSyncBadge('cloud');
-        showToast('Data dari cloud!', 'success');
+        showToast('✅ Data dari cloud!', 'success');
       } else {
-        showToast('Menggunakan data default', 'info');
+        showToast('⚠️ Menggunakan data default', 'info');
       }
     }).finally(() => {
       if (btn) {
@@ -712,14 +820,38 @@
   };
 
   // === PIN CHANGE ===
+  // ✅ PERBAIKAN: Fungsi changePin yang lebih robust
   window.changePin = async function() {
     const oldPin = $('set-oldPin').value;
     const newPin = $('set-newPin').value;
     const confirmPin = $('set-confirmPin').value;
-    if (!oldPin || !newPin || !confirmPin) { showToast('Semua field harus diisi', 'error'); return; }
-    if (newPin.length < 4 || !/^\d+$/.test(newPin)) { showToast('PIN baru harus 4 digit angka', 'error'); return; }
-    if (newPin !== confirmPin) { showToast('Konfirmasi PIN tidak cocok', 'error'); return; }
-    if (oldPin === newPin) { showToast('PIN baru tidak boleh sama dengan PIN lama', 'error'); return; }
+    
+    if (!oldPin || !newPin || !confirmPin) { 
+      showToast('❌ Semua field harus diisi', 'error'); 
+      return; 
+    }
+    
+    if (newPin.length < 4 || !/^\d+$/.test(newPin)) { 
+      showToast('❌ PIN baru harus 4 digit angka', 'error'); 
+      return; 
+    }
+    
+    if (newPin !== confirmPin) { 
+      showToast('❌ Konfirmasi PIN tidak cocok', 'error'); 
+      return; 
+    }
+    
+    if (oldPin === newPin) { 
+      showToast('❌ PIN baru tidak boleh sama dengan PIN lama', 'error'); 
+      return; 
+    }
+    
+    const btn = document.querySelector('[onclick="changePin()"]');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Mengubah PIN...';
+    }
+    
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
@@ -730,17 +862,23 @@
       });
       clearTimeout(timeoutId);
       const result = await res.json();
+      
       if (result.status === 'success') {
         ADMIN_PIN = newPin;
         $('set-oldPin').value = '';
         $('set-newPin').value = '';
         $('set-confirmPin').value = '';
-        showToast('PIN berhasil diubah!', 'success');
+        showToast('✅ PIN berhasil diubah!', 'success');
       } else {
         throw new Error(result.message);
       }
     } catch (err) {
-      showToast('Gagal ubah PIN: ' + err.message, 'error');
+      showToast('❌ Gagal ubah PIN: ' + err.message, 'error');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-key mr-1"></i> Ubah PIN';
+      }
     }
   };
 
@@ -748,26 +886,36 @@
   window.generateGuestLink = function() {
     const nameInput = $('guest-name-input');
     const name = nameInput.value.trim();
-    if (!name) { showToast('Masukkan nama tamu', 'error'); return; }
+    
+    if (!name) { 
+      showToast('❌ Masukkan nama tamu', 'error'); 
+      return; 
+    }
+    
     const encodedName = encodeURIComponent(name).replace(/%20/g, '+');
-    const baseUrl = window.location.origin + '/index.html';
-    const fullLink = baseUrl + '?kpd=' + encodedName;
+    
+    // ✅ PERBAIKAN: Gunakan getBaseUrl() untuk URL dinamis
+    const baseUrl = getBaseUrl();
+    const fullLink = baseUrl + 'index.html?kpd=' + encodedName;
+    
     $('generated-link-output').value = fullLink;
     $('generated-link-box').classList.remove('hidden');
+    
     let history = JSON.parse(localStorage.getItem('guestLinkHistory') || '[]');
     history.unshift({ name, link: fullLink, date: new Date().toLocaleString('id-ID') });
     if (history.length > 50) history = history.slice(0, 50);
     localStorage.setItem('guestLinkHistory', JSON.stringify(history));
+    
     renderGuestHistory();
     nameInput.value = '';
-    showToast('Link berhasil dibuat!', 'success');
+    showToast('✅ Link berhasil dibuat!', 'success');
   };
 
   window.copyGeneratedLink = function() {
     const link = $('generated-link-output').value;
     navigator.clipboard.writeText(link)
-      .then(() => showToast('Link disalin ke clipboard!', 'success'))
-      .catch(() => showToast('Gagal menyalin', 'error'));
+      .then(() => showToast('✅ Link disalin ke clipboard!', 'success'))
+      .catch(() => showToast('❌ Gagal menyalin', 'error'));
   };
 
   window.shareViaWhatsApp = function() {
@@ -800,47 +948,134 @@
     const history = JSON.parse(localStorage.getItem('guestLinkHistory') || '[]');
     if (history[index]) {
       navigator.clipboard.writeText(history[index].link)
-        .then(() => showToast('Link untuk ' + history[index].name + ' disalin!', 'success'));
+        .then(() => showToast('✅ Link untuk ' + history[index].name + ' disalin!', 'success'));
     }
   };
 
   window.clearGuestHistory = function() {
-    if (confirm('Hapus semua riwayat link tamu?')) {
-      localStorage.removeItem('guestLinkHistory');
-      renderGuestHistory();
-      showToast('Riwayat dihapus', 'info');
-    }
+    // ✅ PERBAIKAN: Gunakan confirmation modal
+    showConfirmModal(
+      'Hapus Riwayat',
+      'Apakah Anda yakin ingin menghapus semua riwayat link tamu?',
+      function() {
+        localStorage.removeItem('guestLinkHistory');
+        renderGuestHistory();
+        showToast('ℹ️ Riwayat dihapus', 'info');
+      }
+    );
   };
 
   // === TAB SWITCHING ===
+  // ✅ PERBAIKAN: Fungsi switchTab yang lebih robust
   window.switchTab = function(tabName) {
-    const tabs = document.querySelectorAll('.tab-content');
-    tabs.forEach(tab => tab.classList.add('hidden'));
-    const selectedTab = $('tab-' + tabName);
-    if (selectedTab) selectedTab.classList.remove('hidden');
-    const buttons = document.querySelectorAll('.sidebar-btn');
-    buttons.forEach(btn => {
-      if (btn.dataset.tab === tabName) {
-        btn.classList.add('active');
-        btn.classList.remove('text-gray-600');
+    try {
+      const tabs = document.querySelectorAll('.tab-content');
+      tabs.forEach(tab => tab.classList.add('hidden'));
+      
+      const selectedTab = $('tab-' + tabName);
+      if (selectedTab) {
+        selectedTab.classList.remove('hidden');
       } else {
-        btn.classList.remove('active');
-        btn.classList.add('text-gray-600');
+        console.warn('Tab tidak ditemukan:', tabName);
+        return;
       }
-    });
-    const titles = {
-      'chapters': 'Pengaturan Chapter',
-      'couple': 'Data Mempelai',
-      'design': 'Desain & Dekorasi',
-      'events': 'Jadwal Acara',
-      'content': 'Konten & Galeri',
-      'banks': 'Rekening Bank',
-      'security': 'Keamanan',
-      'tools': 'Tools & Sinkronisasi'
-    };
-    const titleEl = $('page-title');
-    if (titleEl) titleEl.textContent = titles[tabName] || 'Pengaturan';
+      
+      const buttons = document.querySelectorAll('.sidebar-btn');
+      buttons.forEach(btn => {
+        if (btn.dataset.tab === tabName) {
+          btn.classList.add('active');
+          btn.classList.remove('text-gray-600');
+        } else {
+          btn.classList.remove('active');
+          btn.classList.add('text-gray-600');
+        }
+      });
+      
+      const titles = {
+        'chapters': 'Pengaturan Chapter',
+        'couple': 'Data Mempelai',
+        'design': 'Desain & Dekorasi',
+        'events': 'Jadwal Acara',
+        'content': 'Konten & Galeri',
+        'banks': 'Rekening Bank',
+        'security': 'Keamanan',
+        'tools': 'Tools & Sinkronisasi'
+      };
+      
+      const titleEl = $('page-title');
+      if (titleEl) titleEl.textContent = titles[tabName] || 'Pengaturan';
+      
+      // ✅ PERBAIKAN: Close mobile sidebar jika open
+      if (window.innerWidth <= 768) {
+        const body = document.querySelector('main');
+        if (body) body.classList.remove('sidebar-active');
+      }
+    } catch (err) {
+      console.error('Error switching tab:', err);
+      showToast('❌ Gagal mengganti tab', 'error');
+    }
   };
+
+  // === MOBILE SIDEBAR ===
+  // ✅ FUNGSI BARU: Toggle mobile sidebar
+  window.toggleMobileSidebar = function() {
+    const sidebar = document.querySelector('aside');
+    const overlay = document.createElement('div');
+    overlay.className = 'mobile-sidebar-overlay';
+    
+    if (sidebar.classList.contains('mobile-open')) {
+      sidebar.classList.remove('mobile-open');
+      overlay.remove();
+    } else {
+      sidebar.classList.add('mobile-open');
+      document.body.appendChild(overlay);
+      overlay.onclick = function() {
+        sidebar.classList.remove('mobile-open');
+        overlay.remove();
+      };
+    }
+  };
+
+  // === KEYBOARD SHORTCUTS ===
+  // ✅ FUNGSI BARU: Keyboard shortcuts
+  document.addEventListener('keydown', function(e) {
+    // Ctrl+S untuk save
+    if (e.ctrlKey && e.key === 's') {
+      e.preventDefault();
+      window.saveSettings();
+    }
+    
+    // Ctrl+R untuk refresh dari cloud
+    if (e.ctrlKey && e.key === 'r') {
+      e.preventDefault();
+      window.refreshFromCloud();
+    }
+    
+    // Escape untuk close modal
+    if (e.key === 'Escape') {
+      const modal = $('confirm-modal');
+      if (modal && modal.classList.contains('active')) {
+        closeConfirmModal();
+      }
+    }
+  });
+
+  // === AUTO-SAVE ===
+  // ✅ FUNGSI BARU: Auto-save setiap 5 menit
+  let autoSaveTimer = null;
+  function startAutoSave() {
+    if (autoSaveTimer) clearInterval(autoSaveTimer);
+    autoSaveTimer = setInterval(function() {
+      if (appData && !isSaving) {
+        console.log('Auto-saving...');
+        // Hanya simpan ke localStorage, tidak ke cloud
+        try {
+          const currentData = Object.assign({}, appData);
+          localStorage.setItem('undanganData_v2_autosave', JSON.stringify(currentData));
+        } catch (e) {}
+      }
+    }, 5 * 60 * 1000); // 5 menit
+  }
 
   // === INIT ===
   async function init() {
@@ -898,6 +1133,9 @@
 
     // Set default tab
     switchTab('chapters');
+
+    // ✅ PERBAIKAN: Start auto-save
+    startAutoSave();
 
     showToast('✅ Panel Admin siap!', 'success');
   }
