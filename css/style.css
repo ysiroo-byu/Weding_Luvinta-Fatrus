@@ -2,6 +2,50 @@
    UNDANGAN FATRUSS & LUVINTA - STYLESHEET
    ======================================== */
 
+.pin-input {
+  width: 48px; height: 56px;
+  text-align: center;
+  font-size: 24px;
+  font-weight: 700;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  outline: none;
+  transition: 0.3s ease;
+  background: #fafafa;
+  color: var(--gold);
+}
+.pin-input:focus {
+  border-color: var(--gold-light);
+  background: white;
+  box-shadow: 0 0 0 3px rgba(203, 166, 87, 0.15);
+}
+.pin-input.filled {
+  border-color: var(--gold-light);
+  background: var(--gold-ghost);
+}
+.pin-input.error {
+  border-color: #ef4444;
+  background: #fee2e2;
+  animation: shake 0.4s ease;
+}
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-8px); }
+  75% { transform: translateX(8px); }
+}
+
+/* PIN Modal Active */
+#pin-modal.active {
+  opacity: 1 !important;
+  pointer-events: all !important;
+}
+#pin-modal.active #pin-modal-content {
+  transform: scale(1) !important;
+}
+#pin-modal-content {
+  transition: transform 0.3s ease;
+}
+
 /* === Typography === */
 h1, h2 { font-family: 'Great Vibes', cursive; }
 h3, .font-engage { font-family: 'Engagement', cursive; }
