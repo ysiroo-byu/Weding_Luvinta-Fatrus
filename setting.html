@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel Admin - Undangan Fatrus & Luvinta</title>
+<meta name="theme-color" content="#8b703a">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+:root {
+--gold: #8b703a;
+--gold-mid: #a8893f;
+--gold-light: #cba657;
+--gold-pale: #e8d5a3;
+--gold-ghost: #f5eed8;
+--cream: #fdf9f6;
+}
+body { font-family: 'Poppins', sans-serif; background: #f3f4f6; }
+.text-gold { color: var(--gold); }
+.bg-gold { background-color: var(--gold-mid); }
+.border-gold { border-color: var(--gold-light); }
+.button-gold {
+background: linear-gradient(135deg, var(--gold-mid), var(--gold));
+color: #fff; padding: 12px 24px; border-radius: 8px; font-weight: 600;
+transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(139, 112, 58, 0.35);
+}
+.button-gold:hover { transform: translateY(-2px); box-shadow: 0 6px 25px rgba(139, 112, 58, 0.45); }
+.sidebar-btn { transition: all 0.2s ease; }
+.sidebar-btn.active { background: var(--gold-mid); color: white; }
+.sidebar-btn:not(.active):hover { background: var(--gold-ghost); }
+.settings-group { background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+.settings-group-title { font-weight: 700; font-size: 13px; color: var(--gold); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid var(--gold-ghost); display: flex; align-items: center; gap: 6px; }
+input, textarea, select { font-family: 'Poppins', sans-serif; }
+.photo-upload-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.photo-upload-row .preview-wrap { flex-shrink: 0; width: 80px; height: 80px; border-radius: 8px; overflow: hidden; border: 2px solid var(--gold-pale); background: #f3f4f6; display: flex; align-items: center; justify-content: center; }
+.photo-upload-row .preview-wrap img { width: 100%; height: 100%; object-fit: cover; }
+.photo-upload-row .preview-wrap .no-image { font-size: 20px; color: #ccc; }
+.photo-upload-row .field-group { flex: 1; min-width: 180px; }
+.photo-upload-row .field-group input { width: 100%; }
+.bank-entry { background: #f9f9f9; border-radius: 12px; padding: 16px; border: 1px solid #e5e7eb; position: relative; }
+.bank-entry .remove-bank-btn { position: absolute; top: 8px; right: 8px; background: none; border: none; color: #ef4444; cursor: pointer; font-size: 16px; }
+.bank-logo-input-wrap { display: flex; align-items: center; gap: 10px; padding: 8px; background: white; border: 1px solid #e5e7eb; border-radius: 10px; margin-top: 6px; }
+.bank-logo-input-wrap .bank-logo-preview { width: 50px; height: 50px; border-radius: 8px; background: #f3f4f6; border: 1px dashed var(--gold-pale); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.bank-logo-input-wrap .bank-logo-preview img { width: 100%; height: 100%; object-fit: contain; padding: 4px; }
+.bank-logo-input-wrap .bank-logo-field { flex: 1; }
+.bank-logo-input-wrap .bank-logo-upload-btn { background: var(--gold-mid); color: white; border: none; padding: 8px 12px; border-radius: 8px; font-size: 11px; cursor: pointer; }
+.decor-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+@media (max-width: 640px) { .decor-grid { grid-template-columns: 1fr; } }
+.decor-item { background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px; padding: 8px; display: flex; align-items: center; gap: 8px; }
+.decor-item .decor-preview { flex-shrink: 0; width: 50px; height: 50px; border-radius: 6px; overflow: hidden; border: 1px solid var(--gold-pale); background: #f3f4f6; display: flex; align-items: center; justify-content: center; }
+.decor-item .decor-preview img { width: 100%; height: 100%; object-fit: cover; }
+.decor-item .decor-info { flex: 1; }
+.decor-item .decor-label { font-size: 10px; color: #6b7280; margin-bottom: 2px; }
+.decor-item .decor-btn { background: var(--gold-mid); color: white; border: none; padding: 6px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; }
+.toggle-switch { position: relative; width: 50px; height: 26px; display: inline-block; }
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: 0.3s; border-radius: 26px; }
+.toggle-slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: 0.3s; border-radius: 50%; }
+.toggle-switch input:checked + .toggle-slider { background-color: var(--gold-mid); }
+.toggle-switch input:checked + .toggle-slider:before { transform: translateX(24px); }
+.chapter-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: white; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 8px; }
+.chapter-item.disabled { opacity: 0.6; background: #f9fafb; }
+.chapter-info { flex: 1; }
+.chapter-name { font-weight: 600; color: #2a2a2a; font-size: 13px; }
+.chapter-desc { font-size: 11px; color: #6b7280; }
+.chapter-status { font-size: 10px; padding: 3px 8px; border-radius: 12px; font-weight: 600; margin-left: 12px; }
+.chapter-status.active { background: #dcfce7; color: #166534; }
+.chapter-status.inactive { background: #fee2e2; color: #991b1b; }
+.settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.quick-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.quick-action-btn { flex: 1; min-width: 120px; padding: 10px 16px; border: 1px solid var(--gold-pale); background: white; color: var(--gold); border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.quick-action-btn:hover { background: var(--gold-ghost); border-color: var(--gold); }
+.quick-action-btn.primary { background: var(--gold-mid); color: white; border-color: var(--gold); }
+.toast-item { position: fixed; top: 20px; right: 20px; background: white; border-radius: 12px; padding: 14px 20px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12); border-left: 4px solid var(--gold-mid); z-index: 9999; transform: translateX(120%); transition: transform 0.4s ease; }
+.toast-item.show { transform: translateX(0); }
+.sync-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; padding: 3px 10px; border-radius: 20px; font-weight: 600; }
+.sync-badge.cloud { background: #dcfce7; color: #166534; }
+.sync-badge.local { background: #fef9c3; color: #854d0e; }
+</style>
+</head>
+<body>
+<div id="toast-container"></div>
+<div class="flex h-screen">
+<!-- Sidebar -->
+<aside class="w-64 bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
+<div class="p-6 border-b border-gray-200">
+<h1 class="text-lg font-bold text-gold"><i class="fa-solid fa-cog mr-2"></i>Admin Panel</h1>
+<p class="text-xs text-gray-500 mt-1">Undangan Fatrus & Luvinta</p>
+</div>
+<nav class="flex-1 p-4 space-y-2 overflow-y-auto">
+<button onclick="switchTab('chapters')" class="sidebar-btn active w-full text-left px-4 py-3 rounded-lg font-semibold text-sm flex items-center gap-3" data-tab="chapters"><i class="fa-solid fa-layer-group w-5"></i> Chapter/Section</button>
+<button onclick="switchTab('couple')" class="sidebar-btn w-full text-left px-4 py-3 rounded-lg font-semibold text-sm flex items-center gap-3 text-gray-600" data-tab="couple"><i class="fa-solid fa-heart w-5"></i> Mempelai</button>
+<button onclick="switchTab('design')" class="sidebar-btn w-full text-left px-4 py-3 rounded-lg font-semibold text-sm flex items-center gap-3 text-gray-600" data-tab="design"><i class="fa-solid fa-palette w-5"></i> Desain & Dekorasi</button>
+<button onclick="switchTab('events')" class="sidebar-btn w-full text-left px-4 py-3 rounded-lg font-semibold text-sm flex items-center gap-3 text-gray-600" data-tab="events"><i class="fa-solid fa-calendar w-5"></i> Jadwal Acara</button>
+<button onclick="switchTab('content')" class="sidebar-btn w-full text-left px-4 py-3 rounded-lg font-semibold text-sm flex items-center gap-3 text-gray-600" data-tab="content"><i class="fa-solid fa-file-lines w-5"></i> Konten</button>
+<button onclick="switchTab('banks')" class="sidebar-btn w-full text-left px-4 py-3 rounded-lg font-semibold text-sm flex items-center gap-3 text-gray-600" data-tab="banks"><i class="fa-solid fa-building-columns w-5"></i> Rekening</button>
+<button onclick="switchTab('tools')" class="sidebar-btn w-full text-left px-4 py-3 rounded-lg font-semibold text-sm flex items-center gap-3 text-gray-600" data-tab="tools"><i class="fa-solid fa-toolbox w-5"></i> Tools</button>
+</nav>
+<div class="p-4 border-t border-gray-200">
+<a href="./index.html" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2.5 rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2"><i class="fa-solid fa-eye"></i> Lihat Undangan</a>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 overflow-y-auto">
+<div class="p-6 bg-white border-b border-gray-200 flex justify-between items-center">
+<div class="flex items-center gap-3">
+<h2 class="text-xl font-bold text-gray-800" id="page-title">Pengaturan Chapter</h2>
+<span id="sync-indicator" class="sync-badge local"><i class="fa-solid fa-database"></i> Lokal</span>
+</div>
+<div class="flex gap-2">
+<button onclick="refreshFromCloud()" id="btn-refresh-cloud" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-semibold transition"><i class="fa-solid fa-cloud-arrow-down mr-1"></i> Tarik dari Cloud</button>
+<button onclick="saveSettings()" id="btn-save-settings" class="button-gold"><i class="fa-solid fa-cloud-arrow-up mr-1"></i> Simpan Perubahan</button>
+</div>
+</div>
+<div class="p-6">
+<form id="form-settings" class="space-y-6">
+<!-- Tab Chapters -->
+<div id="tab-chapters" class="tab-content">
+<div class="settings-group">
+<div class="settings-group-title"><i class="fa-solid fa-eye"></i> Manajemen Chapter/Section</div>
+<p class="text-xs text-gray-500 mb-4">Aktifkan atau nonaktifkan section/chapter yang ingin ditampilkan di undangan.</p>
+<div id="chapters-list" class="space-y-2"></div>
+<div class="quick-actions mt-4 pt-4 border-t border-gray-200">
+<button type="button" onclick="toggleAllChapters(true)" class="quick-action-btn"><i class="fa-solid fa-eye"></i> Tampilkan Semua</button>
+<button type="button" onclick="toggleAllChapters(false)" class="quick-action-btn"><i class="fa-solid fa-eye-slash"></i> Sembunyikan Semua</button>
+<button type="button" onclick="resetChaptersToDefault()" class="quick-action-btn"><i class="fa-solid fa-rotate-left"></i> Reset Default</button>
+</div>
+</div>
+</div>
+<!-- Tab Couple -->
+<div id="tab-couple" class="tab-content hidden">
+<div class="settings-grid">
+<div class="settings-group">
+<div class="settings-group-title"><i class="fa-solid fa-user-tie"></i> Mempelai Pria</div>
+<div class="space-y-3">
+<div><label class="text-[11px] text-gray-500">Panggilan</label><input type="text" id="set-priaNick" class="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none text-sm focus:border-gold-light"></div>
+<div><label class="text-[11px] text-gray-500">Nama Lengkap</label><input type="text" id="set-priaFull" class="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none text-sm focus:border-gold-light"></div>
+<div><label class="text-[11px] text-gray-500">Orang Tua & Alamat</label><textarea id="set-priaOrtu" rows="2" class="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none text-sm focus:border-gold-light"></textarea></div>
+<div><label class="text-[11px] text-gray-500">IG Username</label><input type="text" id="set-priaIg" class="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none text-sm focus:border-gold-light"></div>
+</div>
+</div>
+<div class="settings-group">
+<div class="settings-group-title"><i class="fa-solid fa-user"></i> Mempelai Wanita</div>
+<div class="space-y-3">
+<div><label class="text-[11px] text-gray-500">Panggilan</label><input type="text" id="set-wanitaNick" class="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none text-sm focus:border-gold-light"></div>
+<div><label class="text-[11px] text-gray-500">Nama Lengkap</label><input type="text" id="set-wanitaFull" class="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none text-sm focus:border-gold-light"></div>
+<div><label class="text-[11px] text-gray-500">Orang Tua & Alamat</label><textarea id="set-wanitaOrtu" rows="2" class="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none text-sm focus:border-gold-light"></textarea></div>
+<div><label class="text-[11px] text-gray-500">IG Username</label><input type="text" id="set-wanitaIg" class="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none text-sm focus:border-gold-light"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Tab Design -->
+<div id="tab-design" class="tab-content hidden">
+<div class="space-y-4">
+<div class="settings-group">
+<div class="settings-group-title"><i class="fa-solid fa-image"></i> Foto & Musik</div>
+<div class="space-y-3">
+<div>
+<label class="text-[11px] text-gray-500 font-bold">URL Foto Sampul</label>
+<div class="photo-upload-row mt-1">
+<div class="preview-wrap" id="preview-fotoSampul"><img src="" alt="preview" class="hidden" id="preview-img-fotoSampul"><span class="no-image" id="noimg-fotoSampul"><i class="fa-regular fa-image"></i></span></div>
+<div class="field-group flex gap-2"><input type="text" id="set-fotoSampul" class="flex-1 px-2.5 py-1.5 border border-gray-200 rounded-lg outline-none text-xs focus:border-gold-light" placeholder="URL foto sampul"><button type="button" onclick="triggerUpload('set-fotoSampul', 'fotoSampul')" class="bg-gold text-white px-3 py-1.5 rounded-lg text-xs hover:bg-gold-mid transition whitespace-nowrap"><i class="fa-solid fa-upload mr-1"></i> Upload</button></div>
+</div>
+</div>
+<div>
+<label class="text-[11px] text-gray-500 font-bold">URL Foto Pria</label>
+<div class="photo-upload-row mt-1">
+<div class="preview-wrap" id="preview-fotoPria"><img src="" alt="preview" class="hidden" id="preview-img-fotoPria"><span class="no-image" id="noimg-fotoPria"><i class="fa-regular fa-image"></i></span></div>
+<div class="field-group flex gap-2"><input type="text" id="set-fotoPria" class="flex-1 px-2.5 py-1.5 border border-gray-200 rounded-lg outline-none text-xs focus:border-gold-light" placeholder="URL foto pria"><button type="button" onclick="triggerUpload('set-fotoPria', 'fotoPria')" class="bg-gold text-white px-3 py-1.5 rounded-lg text-xs hover:bg-gold-mid transition whitespace-nowrap"><i class="fa-solid fa-upload mr-1"></i> Upload</button></div>
+</div>
+</div>
+<div>
+<label class="text-[11px] text-gray-500 font-bold">URL Foto Wanita</label>
+<div class="photo-upload-row mt-1">
+<div class="preview-wrap" id="preview-fotoWanita"><img src="" alt="preview" class="hidden" id="preview-img-fotoWanita"><span class="no-image" id="noimg-fotoWanita"><i class="fa-regular fa-image"></i></span></div>
+<div class="field-group flex gap-2"><input type="text" id="set-fotoWanita" class="flex-1 px-2.5 py-1.5 border border-gray-200 rounded-lg outline-none text-xs focus:border-gold-light" placeholder="URL foto wanita"><button type="button" onclick="triggerUpload('set-fotoWanita', 'fotoWanita')" class="bg-gold text-white px-3 py-1.5 rounded-lg text-xs hover:bg-gold-mid transition whitespace-nowrap"><i class="fa-solid fa-upload mr-1"></i> Upload</button></div>
+</div>
+</div>
+<div><label class="text-[11px] text-gray-500 font-bold">Target Countdown</label><input type="date" id="set-countdownTarget" class="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg outline-none text-sm focus:border-gold-light mt-1"></div>
+<div>
+<label class="text-[11px] text-gray-500 font-bold">URL Musik (.mp3)</label>
+<div class="photo-upload-row mt-1">
+<div class="preview-wrap" id="preview-musicUrl" style="width:60px;height:60px;"><img src="" alt="preview" class="hidden" id="preview-img-musicUrl"><span class="no-image" id="noimg-musicUrl"><i class="fa-solid fa-music"></i></span></div>
+<div class="field-group flex gap-2"><input type="text" id="set-musicUrl" class="flex-1 px-2.5 py-1.5 border border-gray-200 rounded-lg outline-none text-xs focus:border-gold-light" placeholder="URL musik (.mp3)"><button type="button" onclick="triggerUpload('set-musicUrl', 'musicUrl', 'audio')" class="bg-gold text-white px-3 py-1.5 rounded-lg text-xs hover:bg-gold-mid transition whitespace-nowrap"><i class="fa-solid fa-upload mr-1"></i> Upload</button></div>
+</div>
+</div>
+</div>
+</div>
+<div class="settings-group">
+<div class="settings-group-title"><i class="fa-solid fa-paintbrush"></i> Dekorasi</div>
+<div class="decor-section-title" style="font-size:11px;color:#374151;font-weight:700;margin-bottom:8px;margin-top:12px;padding-top:12px;border-top:1px solid #e5e7eb;">🏠 Ornamen Section Home (4 sudut)</div>
+<div class="decor-grid" id="decor-home-grid"></div>
+<div class="decor-section-title" style="font-size:11px;color:#374151;font-weight:700;margin-bottom:8px;margin-top:12px;padding-top:12px;border-top:1px solid #e5e7eb;"> Ornamen Section Mempelai (2 sudut)</div>
+<div class="decor-grid" id="decor-couple-grid"></div>
+<div class="decor-section-title" style="font-size:11px;color:#374151;font-weight:700;margin-bottom:8px;margin-top:12px;padding-top:12px;border-top:1px solid #e5e7eb;">📅 Ornamen Section Acara (2 sudut)</div>
+<div class="decor-grid" id="decor-event-grid"></div>
+<div class="decor-section-title" style="font-size:11px;color:#374151;font-weight:700;margin-bottom:8px;margin-top:12px;padding-top:12px;border-top:1px solid #e5e7eb;"> Ornamen Section Footer (4 sudut)</div>
+<div class="decor-grid" id="decor-footer-grid"></div>
+<div class="decor-section-title" style="font-size:11px;color:#374151;font-weight:700;margin-bottom:8px;margin-top:12px;padding-top:12px;border-top:1px solid #e5e7eb;">⏳ Ornamen Loading Page (4 sudut)</div>
+<div class="decor-grid" id="decor-loader-grid"></div>
+<button type="button" onclick="resetDecorToDefault()" class="w-full bg-gray-200 text-gray-700 py-2 rounded-lg text-xs font-semibold hover:bg-gray-300 transition mt-3"><i class="fa-solid fa-rotate-left mr-1"></i> Reset Dekorasi</button>
+</div>
+</div>
+</div>
+<!-- Tab Events -->
+<div id="tab-events" class="tab-content hidden">
+<div class="settings-grid">
+<div class="settings-group">
+<div class="settings-group-title"><i class="fa-solid fa-ring"></i> Akad</div>
+<div class="space-y-2">
+<div><label class="text-[11px] text-gray-500">Tanggal</label><input type="text" id="set-akadDate" class="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg outline-none text-sm focus:border-gold-light"></div>
+<div><label class="text-[11px] text-gray-500">Jam</label><input type="text" id="set-akadTime" class="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg outline-none text-sm focus:border-gold-light"></div>
+<div><label class="text-[11px] text-gray-500">Lokasi</label><textarea id="set-akadLokasi" rows="2" class="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg outline-none text-sm focus:border-gold-light"></textarea></div>
+<div><label class="text-[11px] text-gray-500">Link Maps</label><input type="url" id="set-akadMapUrl" class="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg outline-none text-xs focus:border-gold-light"></div>
+</div>
+</div>
+<div class="settings-group">
+<div class="settings-group-title"><i class="fa-solid fa-champagne-glasses"></i> Resepsi</div>
+<div class="space-y-2">
+<div><label class="text-[11px] text-gray-500">Tanggal</label><input type="text" id="set-resepsiDate" class="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg outline-none text-sm focus:border-gold-light"></div>
+<div><label class="text-[11px] text-gray-500">Jam</label><input type="text" id="set-resepsiTime" class="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg outline-none text-sm focus:border-gold-light"></div>
+<div><label class="text-[11px] text-gray-500">Lokasi</label><textarea id="set-resepsiLokasi" rows="2" class="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg outline-none text-sm focus:border-gold-light"></textarea></div>
+<div><label class="text-[11px] text-gray-500">Link Maps</label><input type="url" id="set-resepsiMapUrl" class="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg outline-none text-xs focus:border-gold-light"></div>
+</div>
+</div>
+<div class="settings-group">
+<div class="settings-group-title"><i class="fa-solid fa-utensils"></i> Jamuan Tamu</div>
+<div class="space-y-2">
+<div><label class="text-[11px] text-gray-500">Tanggal</label><input type="text" id="set-dinnerDate" class="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg outline-none text-sm focus:border-gold-light"></div>
+<div><label class="text-[11px] text-gray-500">Jam</label><input type="text" id="set-dinnerTime" class="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg outline-none text-sm focus:border-gold-light"></div>
+<div><label class="text-[11px] text-gray-500">Lokasi</label><textarea id="set-dinnerLokasi" rows="2" class="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg outline-none text-sm focus:border-gold-light"></textarea></div>
+<div><label class="text-[11px] text-gray-500">Link Maps</label><input type="url" id="set-dinnerMapUrl" class="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg outline-none text-xs focus:border-gold-light"></div>
+</div>
+</div>
+</div>
+<div class="settings-group mt-4">
+<div class="settings-group-title"><i class="fa-solid fa-map-location-dot"></i> Embed Peta</div>
+<label class="text-[11px] text-gray-500 font-bold">Embed Peta (src URL)</label>
+<input type="url" id="set-mapIframeUrl" class="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg outline-none text-sm mt-1 focus:border-gold-light">
+</div>
+</div>
+<!-- Tab Content -->
+<div id="tab-content" class="tab-content hidden">
+<div class="space-y-4">
+<div class="settings-group">
+<div class="settings-group-title"><i class="fa-solid fa-book-open"></i> Love Story</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div>
+<label class="text-[11px] text-gray-500">Cerita 1</label>
+<input type="text" id="set-story1Title" class="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg outline-none text-xs focus:border-gold-light mb-2" placeholder="Judul">
+<textarea id="set-story1Desc" rows="2" class="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg outline-none text-xs focus:border-gold-light mb-2" placeholder="Deskripsi"></textarea>
+<div class="photo-upload-row">
+<div class="preview-wrap" id="preview-story1Img"><img src="" alt="preview" class="hidden" id="preview-img-story1Img"><span class="no-image" id="noimg-story1Img"><i class="fa-regular fa-image"></i></span></div>
+<div class="field-group flex gap-2"><input type="text" id="set-story1Img" class="flex-1 px-2.5 py-1.5 border border-gray-200 rounded-lg outline-none text-xs focus:border-gold-light" placeholder="URL gambar"><button type="button" onclick="triggerUpload('set-story1Img', 'story1Img')" class="bg-gold text-white px-3 py-1.5 rounded-lg text-xs hover:bg-gold-mid transition whitespace-nowrap"><i class="fa-solid fa-upload mr-1"></i> Upload</button></div>
+</div>
+</div>
+<div>
+<label class="text-[11px] text-gray-500">Cerita 2</label>
+<input type="text" id="set-story2Title" class="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg outline-none text-xs focus:border-gold-light mb-2" placeholder="Judul">
+<textarea id="set-story2Desc" rows="2" class="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg outline-none text-xs focus:border-gold-light mb-2" placeholder="Deskripsi"></textarea>
+<div class="photo-upload-row">
+<div class="preview-wrap" id="preview-story2Img"><img src="" alt="preview" class="hidden" id="preview-img-story2Img"><span class="no-image" id="noimg-story2Img"><i class="fa-regular fa-image"></i></span></div>
+<div class="field-group flex gap-2"><input type="text" id="set-story2Img" class="flex-1 px-2.5 py-1.5 border border-gray-200 rounded-lg outline-none text-xs focus:border-gold-light" placeholder="URL gambar"><button type="button" onclick="triggerUpload('set-story2Img', 'story2Img')" class="bg-gold text-white px-3 py-1.5 rounded-lg text-xs hover:bg-gold-mid transition whitespace-nowrap"><i class="fa-solid fa-upload mr-1"></i> Upload</button></div>
+</div>
+</div>
+</div>
+</div>
+<div class="settings-group">
+<div class="settings-group-title"><i class="fa-solid fa-images"></i> Galeri & Video</div>
+<div class="space-y-3">
+<div><label class="text-[11px] text-gray-500">YouTube Embed URL</label><input type="text" id="set-videoYoutubeUrl" class="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg outline-none text-xs mt-1 focus:border-gold-light"></div>
+<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:#f9f9f9;border-radius:10px;border:1px solid #e5e7eb;"><input type="checkbox" id="set-showVideo" checked style="width:18px;height:18px;accent-color:var(--gold-mid);cursor:pointer;"><label for="set-showVideo" style="font-size:13px;font-weight:500;color:#374151;cursor:pointer;">Tampilkan Video YouTube</label></div>
+<p class="text-[11px] text-gray-500 font-bold mt-2">Foto Galeri</p>
+<div class="space-y-2 mt-1" id="gallery-url-grid"></div>
+<div class="quick-actions mt-3">
+<button type="button" onclick="addGallerySlot()" class="quick-action-btn"><i class="fa-solid fa-plus"></i> Tambah Slot Galeri</button>
+<button type="button" onclick="removeGallerySlot()" class="quick-action-btn"><i class="fa-solid fa-minus"></i> Hapus Slot Terakhir</button>
+</div>
+<p class="text-[10px] text-gray-400 mt-2">Total slot galeri: <strong id="gallery-slot-count">6</strong> (maks 20)</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Tab Banks -->
+<div id="tab-banks" class="tab-content hidden">
+<div class="settings-group">
+<div class="settings-group-title"><i class="fa-solid fa-building-columns"></i> Rekening Bank</div>
+<p class="text-xs text-gray-500 mb-3">Tambahkan rekening untuk menerima hadiah. Upload logo PNG untuk tampilan lebih profesional.</p>
+<div id="bank-settings-container" class="space-y-3"></div>
+<button type="button" onclick="addBankSetting()" class="mt-3 inline-flex items-center gap-2 text-gold border border-gold rounded-lg px-4 py-2 text-sm hover:bg-gold hover:text-white transition font-medium"><i class="fa-solid fa-plus"></i> Tambah Rekening</button>
+</div>
+</div>
+<!-- Tab Tools -->
+<div id="tab-tools" class="tab-content hidden">
+<div class="space-y-4">
+<div class="settings-group">
+<div class="settings-group-title"><i class="fa-solid fa-link"></i> Generator Link Tamu</div>
+<p class="text-xs text-gray-500 mb-3">Buat link undangan khusus untuk setiap tamu.</p>
+<div class="flex gap-2">
+<input type="text" id="guest-name-input" class="flex-1 px-3 py-2 border border-gray-200 rounded-lg outline-none text-sm focus:border-gold-light" placeholder="Contoh: Bapak Budi Santoso">
+<button type="button" onclick="generateGuestLink()" class="bg-gold text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-gold-mid transition whitespace-nowrap"><i class="fa-solid fa-link mr-1"></i> Generate</button>
+</div>
+<div id="generated-link-box" class="hidden bg-white border-2 border-gold-pale rounded-lg p-3 mt-3">
+<label class="text-[10px] text-gray-500 font-bold">Link Undangan:</label>
+<div class="flex gap-2 mt-1">
+<input type="text" id="generated-link-output" readonly class="flex-1 px-2 py-1.5 bg-gray-50 border border-gray-200 rounded text-xs text-gold font-mono">
+<button type="button" onclick="copyGeneratedLink()" class="bg-green-500 text-white px-3 py-1.5 rounded text-xs hover:bg-green-600 transition"><i class="fa-regular fa-copy"></i></button>
+</div>
+<button type="button" onclick="shareViaWhatsApp()" class="mt-2 w-full bg-[#25D366] text-white py-2 rounded-lg text-xs font-semibold hover:bg-[#1fb855] transition flex items-center justify-center gap-2"><i class="fa-brands fa-whatsapp text-base"></i> Kirim via WhatsApp</button>
+</div>
+<div class="border-t border-gray-200 pt-3 mt-3">
+<p class="text-[11px] text-gray-500 font-bold mb-2">📋 Riwayat Link:</p>
+<div id="guest-link-history" class="space-y-2 max-h-[200px] overflow-y-auto"></div>
+<button type="button" onclick="clearGuestHistory()" class="mt-2 text-xs text-red-500 hover:text-red-700 transition"><i class="fa-solid fa-trash mr-1"></i> Hapus Semua Riwayat</button>
+</div>
+</div>
+<div class="settings-group">
+<div class="settings-group-title"><i class="fa-solid fa-cloud-arrow-up"></i> Sinkronisasi Data</div>
+<div class="quick-actions">
+<button type="button" onclick="refreshFromCloud()" id="btn-refresh-cloud-2" class="quick-action-btn"><i class="fa-solid fa-cloud-arrow-down"></i> Tarik dari Cloud</button>
+<button type="button" onclick="saveSettings()" id="btn-save-settings-2" class="quick-action-btn primary"><i class="fa-solid fa-cloud-arrow-up"></i> Simpan ke Cloud</button>
+</div>
+<p id="save-status" class="text-sm font-semibold text-green-600 mt-3"></p>
+</div>
+</div>
+</div>
+</form>
+</div>
+</main>
+</div>
+<input type="file" id="file-upload-input" accept="image/*,audio/*" style="display:none">
+<script src="./js/setting.js"></script>
+</body>
+</html>
